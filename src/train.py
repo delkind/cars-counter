@@ -98,12 +98,11 @@ def train(dataset_path='../datasets/',
                               batch_size=batch_size,
                               image_min_side=800,
                               image_max_side=1333)
-    steps_per_epoch = len(generator)
     callbacks = create_callbacks(model, batch_size=batch_size)
 
     model.fit_generator(
         generator=generator,
-        steps_per_epoch=1,
+        steps_per_epoch=len(generator),
         callbacks=callbacks,
         epochs=epochs,
         verbose=1,
