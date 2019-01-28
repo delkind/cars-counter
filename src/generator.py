@@ -54,8 +54,8 @@ class CarsGenerator(keras.utils.Sequence):
             base_dir: Directory w.r.t. where the files are to be searched.
         """
 
-        images = _process_dataset_(base_dir + '/datasets/PUCPR+_devkit/data')
-        images += _process_dataset_(base_dir + '/datasets/CARPK_devkit/data')
+        images = _process_dataset_(base_dir + '/PUCPR+_devkit/data')
+        images += _process_dataset_(base_dir + '/CARPK_devkit/data')
         images = {k: [[int(n) for n in s.split()] for s in v] for k, v in images}
 
         self.image_names = []
