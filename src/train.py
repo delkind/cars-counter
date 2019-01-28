@@ -2,13 +2,10 @@ import os
 
 import keras
 
-from src.generator import CarsGenerator
+from src.generator import CarsGenerator, CarsDataset
 from src.misc import RedirectModel, smooth_l1, focal
 from src.model import create_retinanet_train, ResNetBackBone, retinanet_custom_objects
 from src.utils.transform import random_transform_generator
-
-
-BATCH_SIZE = 1
 
 
 def create_callbacks(model,
@@ -86,25 +83,43 @@ def train(dataset_path='../datasets/',
           batch_size=1,
           epochs=150,
           lr=1e-5,
-          start_snapshot=None):
+          start_snapshot=None,
+          validation_split=0.1):
     if start_snapshot:
         model = keras.models.load_model(start_snapshot, custom_objects=retinanet_custom_objects())
     else:
         model = create_retinanet_train(ResNetBackBone())
         model.compile(loss={'regression': smooth_l1(), 'classification': focal()},
                       optimizer=keras.optimizers.Adam(lr=lr, clipnorm=0.001))
-    generator = CarsGenerator(dataset_path,
-                              transform_generator=random_transform_generator(flip_x_chance=0.5),
-                              batch_size=batch_size,
-                              image_min_side=800,
-                              image_max_side=1333)
-    callbacks = create_callbacks(model, batch_size=batch_size)
+    dataset = CarsDataset(dataset_path, validation_split=0.1)
+    if validation_split > 0:
+        train_generator = CarsGenerator(dataset.train,
+                                        transform_generator=random_transform_generator(flip_x_chance=0.5),
+                                        batch_size=batch_size,
+                                        image_min_side=800,
+                                        image_max_side=1333)
+        val_generator = CarsGenerator(dataset.validation,
+                                      batch_size=batch_size,
+                                      image_min_side=800,
+                                      image_max_side=1333)
+        validation_steps = len(val_generator)
+    else:
+        train_generator = CarsGenerator(dataset.train,
+                                        transform_generator=random_transform_generator(flip_x_chance=0.5),
+                                        batch_size=batch_size,
+                                        image_min_side=800,
+                                        image_max_side=1333)
+        val_generator = None
+        validation_steps = None
 
+    callbacks = create_callbacks(model, batch_size=batch_size)
     model.fit_generator(
-        generator=generator,
-        steps_per_epoch=len(generator),
+        generator=train_generator,
+        steps_per_epoch=len(train_generator),
         callbacks=callbacks,
         epochs=epochs,
+        validation_data=val_generator,
+        validation_steps=validation_steps,
         verbose=1,
         workers=1,
         use_multiprocessing=True,
@@ -113,4 +128,4 @@ def train(dataset_path='../datasets/',
 
 
 if __name__ == '__main__':
-    train(start_snapshot='./app_resnet_cars_01.h5')
+    train()

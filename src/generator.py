@@ -30,13 +30,27 @@ def read_image_bgr(path):
     return image[:, :, ::-1].copy()
 
 
+class CarsDataset:
+    def __init__(self, base_dir, validation_split=0):
+        images = _process_dataset_(base_dir + '/PUCPR+_devkit/data')
+        images += _process_dataset_(base_dir + '/CARPK_devkit/data')
+        images = [(k, [[int(n) for n in s.split()] for s in v]) for k, v in images]
+        random.shuffle(images)
+        if validation_split > 0:
+            split = int(len(images) * (1 - validation_split))
+            self.train = dict(images[:split])
+            self.validation = dict(images[split:])
+        else:
+            self.train = dict(images)
+
+
 class CarsGenerator(keras.utils.Sequence):
     """ Generate data for cars datasets.
     """
 
     def __init__(
             self,
-            base_dir='../',
+            images,
             transform_generator=None,
             batch_size=1,
             group_method='ratio',  # one of 'none', 'random', 'ratio'
@@ -54,13 +68,8 @@ class CarsGenerator(keras.utils.Sequence):
             base_dir: Directory w.r.t. where the files are to be searched.
         """
 
-        images = _process_dataset_(base_dir + '/PUCPR+_devkit/data')
-        images += _process_dataset_(base_dir + '/CARPK_devkit/data')
-        images = {k: [[int(n) for n in s.split()] for s in v] for k, v in images}
-
         self.image_names = []
         self.image_data = {}
-        self.base_dir = base_dir
 
         self.labels = {0: '1'}
         self.classes = {'1': 0}
