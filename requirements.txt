@@ -1,0 +1,8 @@
+keras
+six
+scipy
+cython
+Pillow
+opencv-python
+progressbar2
+tensorflow
