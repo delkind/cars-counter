@@ -68,8 +68,8 @@ def evaluate(trained_model_path, custom_resnet, dataset_root):
     backbone = CustomResNetBackBone if custom_resnet else AppResNetBackBone
     model = create_inference_model(trained_model_path, backbone)
     eval_set = CarsDataset(dataset_root, 'test')
-    return [next(map(lambda tup: predict_image(model, tup, preprocess_image=backbone.get_preprocess_image()),
-                     eval_set.train.items()))]
+    return list(map(lambda tup: predict_image(model, tup, preprocess_image=backbone.get_preprocess_image()),
+                    eval_set.train.items()))
 
 
 def calculate_errors(predictions):
