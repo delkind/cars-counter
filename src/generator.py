@@ -11,8 +11,8 @@ from src.utils.image import adjust_transform_for_image, apply_transform, resize_
 from src.utils.transform import transform_aabb
 
 
-def _process_dataset_(root):
-    train_set = set(open(root + '/ImageSets/train.txt').read().splitlines())
+def _process_dataset_(root, annotation):
+    train_set = set(open(root + '/ImageSets/{}.txt'.format(annotation)).read().splitlines())
     images = [
         (root + '/Images/' + img, open(root + '/Annotations/' + os.path.splitext(img)[0] + '.txt').read().splitlines())
         for img in os.listdir(root + '/Images') if os.path.splitext(img)[0] in train_set]
@@ -30,9 +30,9 @@ def read_image_bgr(path):
 
 
 class CarsDataset:
-    def __init__(self, base_dir, validation_split=0):
-        images = _process_dataset_(base_dir + '/PUCPR+_devkit/data')
-        images += _process_dataset_(base_dir + '/CARPK_devkit/data')
+    def __init__(self, base_dir, annotation='train', validation_split=0):
+        images = _process_dataset_(base_dir + '/PUCPR+_devkit/data', annotation)
+        images += _process_dataset_(base_dir + '/CARPK_devkit/data', annotation)
         images = [(k, [[int(n) for n in s.split()] for s in v]) for k, v in images]
         random.shuffle(images)
         if validation_split > 0:
