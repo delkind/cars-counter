@@ -85,5 +85,5 @@ if __name__ == '__main__':
         print("Confidence: {}%, ME: {}, RMSE: {}".format(confidence, me, rmse))
 
     # visualize 10 top misses
-    top_misses = list(sorted(preds, key=lambda tup: abs(len(tup[1][0]) - len(tup[1][1]))))[:10]
+    top_misses = list(sorted(preds, key=lambda tup: abs(len(tup[1][0]) - len(tup[1][1])), reverse=True))[:10]
     list(map(lambda tup: visualize_predictions(tup[0], tup[1]), preds))
