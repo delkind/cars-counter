@@ -5,7 +5,6 @@ import warnings
 import keras
 import numpy as np
 from PIL import Image
-from keras.applications.resnet50 import preprocess_input
 
 from src.anchors import anchor_targets_bbox, guess_shapes, anchors_for_shape
 from src.utils.image import adjust_transform_for_image, apply_transform, resize_image, TransformParameters
@@ -51,6 +50,7 @@ class CarsGenerator(keras.utils.Sequence):
     def __init__(
             self,
             images,
+            preprocess_image,
             transform_generator=None,
             batch_size=1,
             group_method='ratio',  # one of 'none', 'random', 'ratio'
@@ -60,7 +60,6 @@ class CarsGenerator(keras.utils.Sequence):
             transform_parameters=None,
             compute_anchor_targets=anchor_targets_bbox,
             compute_shapes=guess_shapes,
-            preprocess_image=preprocess_input
     ):
         """ Initialize a cars data generator.
 

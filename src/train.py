@@ -4,7 +4,7 @@ import keras
 
 from src.generator import CarsGenerator, CarsDataset
 from src.misc import RedirectModel, smooth_l1, focal
-from src.model import create_retinanet_train, ResNetBackBone, retinanet_custom_objects
+from src.model import create_retinanet_train, CustomResNetBackBone, AppResNetBackBone
 from src.utils.transform import random_transform_generator
 
 
@@ -84,27 +84,33 @@ def train(dataset_path='../datasets/',
           epochs=150,
           lr=1e-5,
           start_snapshot=None,
-          validation_split=0.1):
+          validation_split=0.1,
+          tensorboard_dir='logs/',
+          custom_resnet=True):
+    backbone = CustomResNetBackBone if custom_resnet else AppResNetBackBone
     if start_snapshot:
-        model = keras.models.load_model(start_snapshot, custom_objects=retinanet_custom_objects())
+        model = keras.models.load_model(start_snapshot, custom_objects=backbone.get_custom_objects())
     else:
-        model = create_retinanet_train(ResNetBackBone())
+        model = create_retinanet_train(backbone())
         model.compile(loss={'regression': smooth_l1(), 'classification': focal()},
                       optimizer=keras.optimizers.Adam(lr=lr, clipnorm=0.001))
     dataset = CarsDataset(dataset_path, validation_split=0.1)
     if validation_split > 0:
         train_generator = CarsGenerator(dataset.train,
+                                        preprocess_image=backbone.get_preprocess_image(),
                                         transform_generator=random_transform_generator(flip_x_chance=0.5),
                                         batch_size=batch_size,
                                         image_min_side=800,
                                         image_max_side=1333)
         val_generator = CarsGenerator(dataset.validation,
+                                      preprocess_image=backbone.get_preprocess_image(),
                                       batch_size=batch_size,
                                       image_min_side=800,
                                       image_max_side=1333)
         validation_steps = len(val_generator)
     else:
         train_generator = CarsGenerator(dataset.train,
+                                        preprocess_image=backbone.get_preprocess_image(),
                                         transform_generator=random_transform_generator(flip_x_chance=0.5),
                                         batch_size=batch_size,
                                         image_min_side=800,
@@ -112,7 +118,7 @@ def train(dataset_path='../datasets/',
         val_generator = None
         validation_steps = None
 
-    callbacks = create_callbacks(model, batch_size=batch_size)
+    callbacks = create_callbacks(model, batch_size=batch_size, tensorboard_dir=tensorboard_dir)
     model.fit_generator(
         generator=train_generator,
         steps_per_epoch=len(train_generator),
@@ -128,4 +134,4 @@ def train(dataset_path='../datasets/',
 
 
 if __name__ == '__main__':
-    train()
+    train(custom_resnet=False)

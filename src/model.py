@@ -1,6 +1,7 @@
 import keras
 import keras.models
-from keras.applications.resnet50 import ResNet50
+import numpy as np
+from keras.utils import get_file
 
 from src.misc import PriorProbability, UpsampleLike, smooth_l1, focal
 
@@ -86,8 +87,9 @@ def create_classification_model(
     return keras.models.Model(inputs=inputs, outputs=outputs, name=name)
 
 
-class ResNetBackBone:
+class AppResNetBackBone:
     def __init__(self):
+        from keras.applications.resnet50 import ResNet50
         resnet = ResNet50(include_top=False, weights='imagenet')
         layer_names = ['bn%s_branch2c' % layer_name for layer_name in ['2c', '3d', '4f', '5c']]
         outputs = [resnet.layers[i + 2].output for i, layer in enumerate(resnet.layers) if layer.name in layer_names]
@@ -101,6 +103,88 @@ class ResNetBackBone:
 
     def get_pyramid_outputs(self):
         return self.get_outputs()[1:]
+
+    @staticmethod
+    def get_preprocess_image():
+        from keras.applications.resnet50 import preprocess_input
+        return preprocess_input
+
+    @staticmethod
+    def get_custom_objects():
+        custom_objects = {
+            'UpsampleLike': UpsampleLike,
+            'PriorProbability': PriorProbability,
+            # 'RegressBoxes': RegressBoxes,
+            # 'FilterDetections': FilterDetections,
+            # 'Anchors': Anchors,
+            # 'ClipBoxes': ClipBoxes,
+            '_smooth_l1': smooth_l1(),
+            '_focal': focal(),
+
+        }
+        return custom_objects
+
+
+class CustomResNetBackBone:
+    def __init__(self):
+        import keras_resnet.models
+        inputs = keras.layers.Input(shape=(None, None, 3))
+        resnet = keras_resnet.models.ResNet50(inputs, include_top=False, freeze_bn=True)
+        layer_names = ['bn%s_branch2c' % layer_name for layer_name in ['2c', '3d', '4f', '5c']]
+        outputs = [resnet.layers[i + 2].output for i, layer in enumerate(resnet.layers) if layer.name in layer_names]
+        self.model = keras.models.Model(inputs=[resnet.input], outputs=outputs)
+        self.model.load_weights(self.download_imagenet(), by_name=True, skip_mismatch=True)
+
+    @staticmethod
+    def download_imagenet():
+        """ Downloads ImageNet weights and returns path to weights file.
+        """
+        resnet_filename = 'ResNet-{}-model.keras.h5'
+        resnet_resource = 'https://github.com/fizyr/keras-models/releases/download/v0.0.1/{}'.format(resnet_filename)
+
+        filename = resnet_filename.format(50)
+        resource = resnet_resource.format(50)
+        checksum = '3e9f4e4f77bbe2c9bec13b53ee1c2319'
+
+        return get_file(
+            filename,
+            resource,
+            cache_subdir='models',
+            md5_hash=checksum
+        )
+
+    def get_input(self):
+        return self.model.input
+
+    def get_outputs(self):
+        return self.model.outputs
+
+    def get_pyramid_outputs(self):
+        return self.get_outputs()[1:]
+
+    @staticmethod
+    def get_preprocess_image():
+        def do_preprocess(x, mode='caffe'):
+            x = x.astype(np.float32)
+
+            if mode == 'tf':
+                x /= 127.5
+                x -= 1.
+            elif mode == 'caffe':
+                x[..., 0] -= 103.939
+                x[..., 1] -= 116.779
+                x[..., 2] -= 123.68
+
+            return x
+
+        return do_preprocess
+
+    @staticmethod
+    def get_custom_objects():
+        custom_objects = dict(AppResNetBackBone.get_custom_objects())
+        import keras_resnet
+        custom_objects.update(keras_resnet.custom_objects)
+        return custom_objects
 
 
 def create_retinanet_train(backbone, num_classes=1, num_anchors=9, feature_size=256, name='retinanet'):
@@ -135,18 +219,3 @@ def create_pyramid_features(pyramid_outputs, feature_size):
     p7 = keras.layers.Activation('relu', name='C6_relu')(p6)
     p7 = keras.layers.Conv2D(feature_size, kernel_size=3, strides=2, padding='same', name='P7')(p7)
     return [p3, p4, p5, p6, p7]
-
-
-def retinanet_custom_objects():
-    return {
-        'UpsampleLike': UpsampleLike,
-        'PriorProbability': PriorProbability,
-        # 'RegressBoxes': RegressBoxes,
-        # 'FilterDetections': FilterDetections,
-        # 'Anchors': Anchors,
-        # 'ClipBoxes': ClipBoxes,
-        '_smooth_l1': smooth_l1(),
-        '_focal': focal(),
-
-    }
-
