@@ -134,4 +134,4 @@ def train(dataset_path='../datasets/',
 
 
 if __name__ == '__main__':
-    train(custom_resnet=False)
+    train(custom_resnet=True)
