@@ -55,8 +55,8 @@ class CarsGenerator(keras.utils.Sequence):
             batch_size=1,
             group_method='ratio',  # one of 'none', 'random', 'ratio'
             shuffle_groups=True,
-            image_min_side=800,
-            image_max_side=1333,
+            image_min_side=720,
+            image_max_side=1280,
             transform_parameters=None,
             compute_anchor_targets=anchor_targets_bbox,
             compute_shapes=guess_shapes,

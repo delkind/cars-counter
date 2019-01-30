@@ -11,8 +11,8 @@ from src.utils.transform import random_transform_generator
 def create_callbacks(model,
                      batch_size,
                      snapshot_path='./',
-                     backbone='app_resnet',
-                     tensorboard_dir='logs/'):
+                     tensorboard_dir='logs/',
+                     snapshot_name_base="custom"):
     """ Creates the callbacks to use during training.
 
     Args
@@ -52,8 +52,7 @@ def create_callbacks(model,
         checkpoint = keras.callbacks.ModelCheckpoint(
             os.path.join(
                 snapshot_path,
-                '{backbone}_{dataset_type}_{{epoch:02d}}.h5'.format(backbone=backbone,
-                                                                    dataset_type='cars')
+                '{base}_{{epoch:02d}}.h5'.format(base=snapshot_name_base)
             ),
             verbose=1,
             save_best_only=True,
@@ -86,7 +85,9 @@ def train(dataset_path='../datasets/',
           start_snapshot=None,
           validation_split=0.1,
           tensorboard_dir='logs/',
-          custom_resnet=True):
+          custom_resnet=True,
+          augmentation=True,
+          snapshot_base_name="resnet"):
     backbone = CustomResNetBackBone if custom_resnet else AppResNetBackBone
     if start_snapshot:
         model = keras.models.load_model(start_snapshot, custom_objects=backbone.get_custom_objects())
@@ -95,30 +96,50 @@ def train(dataset_path='../datasets/',
         model.compile(loss={'regression': smooth_l1(), 'classification': focal()},
                       optimizer=keras.optimizers.Adam(lr=lr, clipnorm=0.001))
     dataset = CarsDataset(dataset_path, validation_split=0.1)
+
+    if augmentation:
+        transform_generator = random_transform_generator(
+            min_rotation=-0.1,
+            max_rotation=0.1,
+            min_translation=(-0.1, -0.1),
+            max_translation=(0.1, 0.1),
+            min_shear=-0.1,
+            max_shear=0.1,
+            min_scaling=(0.9, 0.9),
+            max_scaling=(1.1, 1.1),
+            flip_x_chance=0.5,
+            flip_y_chance=0.5,
+        )
+    else:
+        transform_generator = random_transform_generator(flip_x_chance=0.5)
+
     if validation_split > 0:
         train_generator = CarsGenerator(dataset.train,
                                         preprocess_image=backbone.get_preprocess_image(),
-                                        transform_generator=random_transform_generator(flip_x_chance=0.5),
+                                        transform_generator=transform_generator,
                                         batch_size=batch_size,
-                                        image_min_side=800,
-                                        image_max_side=1333)
+                                        image_min_side=720,
+                                        image_max_side=1280)
         val_generator = CarsGenerator(dataset.validation,
                                       preprocess_image=backbone.get_preprocess_image(),
                                       batch_size=batch_size,
-                                      image_min_side=800,
-                                      image_max_side=1333)
+                                      image_min_side=720,
+                                      image_max_side=1280)
         validation_steps = len(val_generator)
     else:
         train_generator = CarsGenerator(dataset.train,
                                         preprocess_image=backbone.get_preprocess_image(),
                                         transform_generator=random_transform_generator(flip_x_chance=0.5),
                                         batch_size=batch_size,
-                                        image_min_side=800,
-                                        image_max_side=1333)
+                                        image_min_side=720,
+                                        image_max_side=1280)
         val_generator = None
         validation_steps = None
 
-    callbacks = create_callbacks(model, batch_size=batch_size, tensorboard_dir=tensorboard_dir)
+    callbacks = create_callbacks(model,
+                                 batch_size=batch_size,
+                                 tensorboard_dir=tensorboard_dir,
+                                 snapshot_name_base=snapshot_base_name)
     model.fit_generator(
         generator=train_generator,
         steps_per_epoch=len(train_generator),
@@ -134,4 +155,4 @@ def train(dataset_path='../datasets/',
 
 
 if __name__ == '__main__':
-    train(custom_resnet=True)
+    train(custom_resnet=True, snapshot_base_name='augmented')
