@@ -87,6 +87,7 @@ def train(dataset_path='../datasets/',
           tensorboard_dir='logs/',
           custom_resnet=True,
           augmentation=True,
+          snapshot_path='model_snapshots',
           snapshot_base_name="resnet"):
     backbone = CustomResNetBackBone if custom_resnet else AppResNetBackBone
     if start_snapshot:
@@ -108,8 +109,7 @@ def train(dataset_path='../datasets/',
             min_scaling=(0.9, 0.9),
             max_scaling=(1.1, 1.1),
             flip_x_chance=0.5,
-            flip_y_chance=0.5,
-        )
+            flip_y_chance=0.5)
     else:
         transform_generator = random_transform_generator(flip_x_chance=0.5)
 
@@ -126,6 +126,10 @@ def train(dataset_path='../datasets/',
                                       image_min_side=720,
                                       image_max_side=1280)
         validation_steps = len(val_generator)
+        with open('{}/validation.txt'.format(snapshot_path), "wt") as f:
+            for img_path in dataset.validation.keys():
+                print(img_path, file=f)
+
     else:
         train_generator = CarsGenerator(dataset.train,
                                         preprocess_image=backbone.get_preprocess_image(),
@@ -139,6 +143,7 @@ def train(dataset_path='../datasets/',
     callbacks = create_callbacks(model,
                                  batch_size=batch_size,
                                  tensorboard_dir=tensorboard_dir,
+                                 snapshot_path=snapshot_path,
                                  snapshot_name_base=snapshot_base_name)
     model.fit_generator(
         generator=train_generator,
