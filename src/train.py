@@ -126,6 +126,7 @@ def train(dataset_path='../datasets/',
                                       image_min_side=720,
                                       image_max_side=1280)
         validation_steps = len(val_generator)
+        os.makedirs(snapshot_path, exist_ok=True)
         with open('{}/validation.txt'.format(snapshot_path), "wt") as f:
             for img_path in dataset.validation.keys():
                 print(img_path, file=f)
