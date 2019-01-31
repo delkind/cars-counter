@@ -51,13 +51,13 @@ def visualize_predictions(img_path, annotations):
     draw = read_image_bgr(img_path)
     preds, gt = annotations
     draw = cv2.cvtColor(draw, cv2.COLOR_BGR2RGB)
+    for box in gt:
+        draw_box(draw, box, color=GREEN, thickness=4)
     for box, score in preds:
         b = box.astype(int)
         draw_box(draw, b, color=RED)
         caption = "{:.3f}".format(score)
         draw_caption(draw, b, caption)
-    for box in gt:
-        draw_box(draw, box, color=GREEN)
     fig = plt.figure(figsize=(20, 20))
     plt.axis('off')
     plt.imshow(draw)
