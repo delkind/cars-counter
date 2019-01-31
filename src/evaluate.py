@@ -72,15 +72,21 @@ def evaluate(trained_model_path, custom_resnet, dataset_root):
                     eval_set.train.items()))
 
 
-def calculate_errors(predictions):
-    errors_by_conf = [(confidence, np.array([abs(len([p for p in pred if p[1] > confidence / 100]) - len(gt))
-                                             for image, (pred, gt) in predictions])) for confidence in range(50, 95)]
-    return [(confidence, np.mean(errors), np.sqrt(np.mean(errors ** 2))) for (confidence, errors) in errors_by_conf]
+def calculate_errors(predictions, conf_start, conf_end=0):
+    if conf_end != 0:
+        errors_by_conf = [(confidence, np.array([abs(len([p for p in pred if p[1] > confidence / 100]) - len(gt))
+                                                 for image, (pred, gt) in predictions])) for confidence in
+                          range(50, 95)]
+        return [(confidence, np.mean(errors), np.sqrt(np.mean(errors ** 2))) for (confidence, errors) in errors_by_conf]
+    else:
+        errors = np.array([abs(len([p for p in pred if p[1] > conf_start / 100]) - len(gt))
+                           for image, (pred, gt) in predictions])
+        return [(conf_start, np.mean(errors), np.sqrt(np.mean(errors ** 2)))]
 
 
 if __name__ == '__main__':
     preds = evaluate('./app_resnet_cars_10.h5', custom_resnet=True, dataset_root='../datasets')
-    metrics = calculate_errors(preds)
+    metrics = calculate_errors(preds, 50, 95)
     for confidence, me, rmse in metrics:
         print("Confidence: {}%, ME: {}, RMSE: {}".format(confidence, me, rmse))
 
