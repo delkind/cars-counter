@@ -78,17 +78,11 @@ def create_callbacks(model,
     return callbacks
 
 
-def train(dataset_path='../datasets/',
-          batch_size=1,
-          epochs=150,
-          lr=1e-5,
-          start_snapshot=None,
-          validation_split=0.1,
-          tensorboard_dir='logs/',
-          custom_resnet=True,
-          augmentation=True,
-          snapshot_path='model_snapshots',
-          snapshot_base_name="resnet"):
+def train(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e-5, start_snapshot=None, validation_split=0.1,
+          tensorboard_dir='logs/', custom_resnet=True, augmentation=True, snapshot_path='model_snapshots',
+          snapshot_base_name="resnet", validation_set=None):
+    dataset = CarsDataset(dataset_path, validation_split=validation_split, validation_set=validation_set)
+
     backbone = CustomResNetBackBone if custom_resnet else AppResNetBackBone
     if start_snapshot:
         model = keras.models.load_model(start_snapshot, custom_objects=backbone.get_custom_objects())
@@ -96,7 +90,6 @@ def train(dataset_path='../datasets/',
         model = create_retinanet_train(backbone())
         model.compile(loss={'regression': smooth_l1(), 'classification': focal()},
                       optimizer=keras.optimizers.Adam(lr=lr, clipnorm=0.001))
-    dataset = CarsDataset(dataset_path, validation_split=0.1)
 
     if augmentation:
         transform_generator = random_transform_generator(
@@ -161,4 +154,4 @@ def train(dataset_path='../datasets/',
 
 
 if __name__ == '__main__':
-    train(custom_resnet=True, snapshot_base_name='augmented')
+    train(custom_resnet=True, snapshot_base_name='augmented', validation_set='validation.txt')

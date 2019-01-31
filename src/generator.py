@@ -30,12 +30,17 @@ def read_image_bgr(path):
 
 
 class CarsDataset:
-    def __init__(self, base_dir, annotation='train', validation_split=0):
+    def __init__(self, base_dir, annotation='train', validation_split=0, validation_set=None):
         images = _process_dataset_(base_dir + '/PUCPR+_devkit/data', annotation)
         images += _process_dataset_(base_dir + '/CARPK_devkit/data', annotation)
         images = [(k, [[int(n) for n in s.split()] for s in v]) for k, v in images]
         random.shuffle(images)
-        if validation_split > 0:
+
+        if validation_set:
+            validation_set = set(open(validation_set, "rt").read().splitlines())
+            self.validation = dict([(image, ann) for (image, ann) in images if image in validation_set])
+            self.train = dict([(image, ann) for (image, ann) in images if image not in validation_set])
+        elif validation_split > 0:
             split = int(len(images) * (1 - validation_split))
             self.train = dict(images[:split])
             self.validation = dict(images[split:])
