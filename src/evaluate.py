@@ -1,9 +1,11 @@
 import math
+import pickle
 
 import cv2
 import keras
 import numpy as np
 import matplotlib.pyplot as plt
+from src.utils.compute_overlap import compute_overlap
 
 from src.generator import CarsDataset, read_image_bgr
 from src.inference import add_inference
@@ -58,10 +60,11 @@ def visualize_predictions(img_path, annotations):
         draw_box(draw, b, color=RED)
         caption = "{:.3f}".format(score)
         draw_caption(draw, b, caption)
-    fig = plt.figure(figsize=(20, 20))
+    plt.figure(figsize=(20, 20))
     plt.axis('off')
     plt.imshow(draw)
     plt.show()
+    return len(preds) - len(gt)
 
 
 def evaluate(trained_model_path, custom_resnet, dataset_root):
@@ -70,6 +73,19 @@ def evaluate(trained_model_path, custom_resnet, dataset_root):
     eval_set = CarsDataset(dataset_root, 'test')
     return list(map(lambda tup: predict_image(model, tup, preprocess_image=backbone.get_preprocess_image()),
                     eval_set.train.items()))
+
+
+def filter_bboxes(bboxes):
+    overlaps = compute_overlap(bboxes, bboxes)
+    for i in range(overlaps.shape[0]):
+        overlaps[i, i] = 0
+    full_overlap_indices = np.argwhere(overlaps > 0.5)
+    if full_overlap_indices.tolist():
+        full_overlaps = np.array(list(set([tuple(sorted(pair)) for pair in full_overlap_indices.tolist()])))
+        redundant = set(full_overlaps[:, 1].tolist())
+        return np.array(list(set(range(0, bboxes.shape[0])) - redundant))
+    else:
+        return np.arange(bboxes.shape[0])
 
 
 def calculate_errors(predictions, conf_start, conf_end=0):
@@ -84,12 +100,32 @@ def calculate_errors(predictions, conf_start, conf_end=0):
         return [(conf_start, np.mean(errors), np.sqrt(np.mean(errors ** 2)))]
 
 
+def filter_pred(pred):
+    image, (pred, gt) = pred
+
+    if gt:
+        gt = np.array(gt, dtype=np.float64)
+        gt = gt[filter_bboxes(gt), :]
+
+    if pred:
+        pred_bboxes = np.array(list(zip(*pred))[0], dtype=np.float64)
+        pred_indices = filter_bboxes(pred_bboxes)
+        pred = np.array(pred)[pred_indices].tolist()
+
+    return image, (pred, gt)
+
+
 if __name__ == '__main__':
-    preds = evaluate('./app_resnet_cars_10.h5', custom_resnet=True, dataset_root='../datasets')
+    # preds = evaluate('./app_resnet_cars_10.h5', custom_resnet=True, dataset_root='../datasets')
+    preds = pickle.load(open('resnet_04.h5.results.pkl', 'rb'))
+
+    preds = list(map(filter_pred, preds))
+
     metrics = calculate_errors(preds, 50, 95)
     for confidence, me, rmse in metrics:
         print("Confidence: {}%, ME: {}, RMSE: {}".format(confidence, me, rmse))
 
     # visualize 10 top misses
-    top_misses = list(sorted(preds, key=lambda tup: abs(len(tup[1][0]) - len(tup[1][1])), reverse=True))[:10]
-    list(map(lambda tup: visualize_predictions(tup[0], tup[1]), top_misses))
+    preds = list(map(lambda tup: (tup[0], ([t for t in tup[1][0] if t[1] > 0.66], tup[1][1])), preds))
+    top_misses = list(sorted(preds, key=lambda tup: abs(len([t for t in tup[1][0] if t[1] > 0.66]) - len(tup[1][1])), reverse=True))[:10]
+    print(list(map(lambda tup: visualize_predictions(tup[0], tup[1]), top_misses)))

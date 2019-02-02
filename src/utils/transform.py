@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import random
 
 import numpy as np
 
@@ -44,7 +45,7 @@ def transform_aabb(transform, aabb):
     points = transform.dot([
         [x1, x2, x1, x2],
         [y1, y2, y2, y1],
-        [1,  1,  1,  1 ],
+        [1, 1, 1, 1],
     ])
 
     # Extract the min and max corners again.
@@ -76,7 +77,7 @@ def rotation(angle):
     """
     return np.array([
         [np.cos(angle), -np.sin(angle), 0],
-        [np.sin(angle),  np.cos(angle), 0],
+        [np.sin(angle), np.cos(angle), 0],
         [0, 0, 1]
     ])
 
@@ -128,7 +129,7 @@ def shear(angle):
     """
     return np.array([
         [1, -np.sin(angle), 0],
-        [0,  np.cos(angle), 0],
+        [0, np.cos(angle), 0],
         [0, 0, 1]
     ])
 
@@ -199,18 +200,32 @@ def change_transform_origin(transform, center):
     return np.linalg.multi_dot([translation(center), transform, translation(-center)])
 
 
+def random_occlusions(image, bboxes, min_occlusion=0.5, max_occlusion=0.9):
+    for bbox in bboxes:
+        sizes = [bbox[3] - bbox[1], bbox[2] - bbox[0]]
+        revealed_dim = random.randint(0, 1)
+        occlusion = random.uniform(min_occlusion, max_occlusion)
+        sizes[revealed_dim] = int(sizes[revealed_dim] * occlusion)
+        patch = np.random.randint(0, 256, (*sizes, 3))
+        location = random.randint(0, 1)
+        if location == 0:
+            image[bbox[1]:bbox[1] + sizes[0], bbox[0]:bbox[0] + sizes[1], :] = patch
+        else:
+            image[bbox[3] - sizes[0]:bbox[3], bbox[2] - sizes[1]:bbox[2], :] = patch
+
+
 def random_transform(
-    min_rotation=0,
-    max_rotation=0,
-    min_translation=(0, 0),
-    max_translation=(0, 0),
-    min_shear=0,
-    max_shear=0,
-    min_scaling=(1, 1),
-    max_scaling=(1, 1),
-    flip_x_chance=0,
-    flip_y_chance=0,
-    prng=DEFAULT_PRNG
+        min_rotation=0,
+        max_rotation=0,
+        min_translation=(0, 0),
+        max_translation=(0, 0),
+        min_shear=0,
+        max_shear=0,
+        min_scaling=(1, 1),
+        max_scaling=(1, 1),
+        flip_x_chance=0,
+        flip_y_chance=0,
+        prng=DEFAULT_PRNG
 ):
     """ Create a random transformation.
 

@@ -5,10 +5,11 @@ import warnings
 import keras
 import numpy as np
 from PIL import Image
+from src.utils.compute_overlap import compute_overlap
 
 from src.anchors import anchor_targets_bbox, guess_shapes, anchors_for_shape
 from src.utils.image import adjust_transform_for_image, apply_transform, resize_image, TransformParameters
-from src.utils.transform import transform_aabb
+from src.utils.transform import transform_aabb, random_occlusions
 
 
 def _process_dataset_(root, annotation):
@@ -34,6 +35,7 @@ class CarsDataset:
         images = _process_dataset_(base_dir + '/PUCPR+_devkit/data', annotation)
         images += _process_dataset_(base_dir + '/CARPK_devkit/data', annotation)
         images = [(k, [[int(n) for n in s.split()] for s in v]) for k, v in images]
+        images = self.sanitize_data(images)
         random.shuffle(images)
 
         if validation_set:
@@ -46,6 +48,30 @@ class CarsDataset:
             self.validation = dict(images[split:])
         else:
             self.train = dict(images)
+
+    @staticmethod
+    def filter_bboxes(bboxes):
+        overlaps = compute_overlap(bboxes, bboxes)
+        for i in range(overlaps.shape[0]):
+            overlaps[i, i] = 0
+        full_overlap_indices = np.argwhere(overlaps > 0.5)
+        if full_overlap_indices.tolist():
+            full_overlaps = np.array(list(set([tuple(sorted(pair)) for pair in full_overlap_indices.tolist()])))
+            redundant = set(full_overlaps[:, 1].tolist())
+            return np.array(list(set(range(0, bboxes.shape[0])) - redundant))
+        else:
+            return np.arange(bboxes.shape[0])
+
+    @staticmethod
+    def sanitize_data(images):
+        out = []
+        for image, annotations in images:
+            if annotations:
+                annotations = np.array(annotations, dtype=np.float64)
+                indices = CarsDataset.filter_bboxes(annotations[:, :-1])
+                annotations = annotations[indices, ...].tolist()
+            out += [(image, annotations)]
+        return out
 
 
 class CarsGenerator(keras.utils.Sequence):
@@ -63,8 +89,7 @@ class CarsGenerator(keras.utils.Sequence):
             image_min_side=720,
             image_max_side=1280,
             transform_parameters=None,
-            compute_anchor_targets=anchor_targets_bbox,
-            compute_shapes=guess_shapes,
+            random_occlusions=True
     ):
         """ Initialize a cars data generator.
 
@@ -90,12 +115,11 @@ class CarsGenerator(keras.utils.Sequence):
         self.image_min_side = image_min_side
         self.image_max_side = image_max_side
         self.transform_parameters = transform_parameters or TransformParameters()
-        self.compute_anchor_targets = compute_anchor_targets
-        self.compute_shapes = compute_shapes
         self.preprocess_image = preprocess_image
+        self.random_occlusions = random_occlusions
 
         # Define groups
-        self.group_images()
+        self.groups = self.group_images()
 
         # Shuffle when initializing
         if self.shuffle_groups:
@@ -251,8 +275,15 @@ class CarsGenerator(keras.utils.Sequence):
             order.sort(key=lambda x: self.image_aspect_ratio(x))
 
         # divide into groups, one group = one batch
-        self.groups = [[order[x % len(order)] for x in range(i, i + self.batch_size)] for i in
+        groups = [[order[x % len(order)] for x in range(i, i + self.batch_size)] for i in
                        range(0, len(order), self.batch_size)]
+
+        complete_groups = list(zip(groups, (False,) * len(groups)))
+
+        if self.random_occlusions:
+            complete_groups += list(zip(groups, (True,) * len(groups)))
+
+        return complete_groups
 
     def compute_inputs(self, image_group):
         """ Compute inputs for the network using an image_group.
@@ -272,18 +303,14 @@ class CarsGenerator(keras.utils.Sequence):
 
         return image_batch
 
-    def generate_anchors(self, image_shape):
-        anchor_params = None
-        return anchors_for_shape(image_shape, anchor_params=anchor_params, shapes_callback=self.compute_shapes)
-
     def compute_targets(self, image_group, annotations_group):
         """ Compute target outputs for the network using images and their annotations.
         """
         # get the max image shape
         max_shape = tuple(max(image.shape[x] for image in image_group) for x in range(3))
-        anchors = self.generate_anchors(max_shape)
+        anchors = anchors_for_shape(max_shape)
 
-        batches = self.compute_anchor_targets(
+        batches = anchor_targets_bbox(
             anchors,
             image_group,
             annotations_group,
@@ -296,8 +323,12 @@ class CarsGenerator(keras.utils.Sequence):
         """ Compute inputs and target outputs for the network.
         """
         # load images and annotations
-        image_group = self.load_image_group(group)
-        annotations_group = self.load_annotations_group(group)
+        image_group = self.load_image_group(group[0])
+        annotations_group = self.load_annotations_group(group[0])
+
+        if group[1]:
+            for image, bboxes in zip(image_group, annotations_group):
+                random_occlusions(image, bboxes)
 
         # check validity of annotations
         image_group, annotations_group = self.filter_annotations(image_group, annotations_group, group)
