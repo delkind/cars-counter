@@ -327,8 +327,8 @@ class CarsGenerator(keras.utils.Sequence):
         annotations_group = self.load_annotations_group(group[0])
 
         if group[1]:
-            for image, bboxes in zip(image_group, annotations_group):
-                random_occlusions(image, bboxes)
+            for image, annotations in zip(image_group, annotations_group):
+                random_occlusions(image, annotations['bboxes'])
 
         # check validity of annotations
         image_group, annotations_group = self.filter_annotations(image_group, annotations_group, group)

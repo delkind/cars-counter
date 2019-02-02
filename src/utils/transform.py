@@ -201,7 +201,8 @@ def change_transform_origin(transform, center):
 
 
 def random_occlusions(image, bboxes, min_occlusion=0.5, max_occlusion=0.9):
-    for bbox in bboxes:
+    for raw_bbox in bboxes:
+        bbox = [int(n) for n in raw_bbox]
         sizes = [bbox[3] - bbox[1], bbox[2] - bbox[0]]
         revealed_dim = random.randint(0, 1)
         occlusion = random.uniform(min_occlusion, max_occlusion)
