@@ -89,7 +89,7 @@ class CarsGenerator(keras.utils.Sequence):
             image_min_side=720,
             image_max_side=1280,
             transform_parameters=None,
-            random_occlusions=True
+            random_occlusions=False
     ):
         """ Initialize a cars data generator.
 
