@@ -298,9 +298,6 @@ class CarsGenerator(keras.utils.Sequence):
         for image_index, image in enumerate(image_group):
             image_batch[image_index, :image.shape[0], :image.shape[1], :image.shape[2]] = image
 
-        if keras.backend.image_data_format() == 'channels_first':
-            image_batch = image_batch.transpose((0, 3, 1, 2))
-
         return image_batch
 
     def compute_targets(self, image_group, annotations_group):
@@ -347,6 +344,34 @@ class CarsGenerator(keras.utils.Sequence):
 
         return inputs, targets
 
+    def compute_density_input_output(self, group):
+        """ Compute inputs and target outputs for the network.
+        """
+        # load images and annotations
+        image_group = self.load_image_group(group[0])
+        annotations_group = self.load_annotations_group(group[0])
+
+        if group[1]:
+            for image, annotations in zip(image_group, annotations_group):
+                random_occlusions(image, annotations['bboxes'])
+
+        # check validity of annotations
+        image_group, annotations_group = self.filter_annotations(image_group, annotations_group, group)
+
+        # randomly transform data
+        image_group, annotations_group = self.random_transform_group(image_group, annotations_group)
+
+        # perform preprocessing steps
+        image_group, annotations_group = self.preprocess_group(image_group, annotations_group)
+
+        # compute network inputs
+        inputs = self.compute_inputs(image_group)
+
+        # compute network targets
+        targets = [len(a['bboxes']) for a in annotations_group]
+
+        return inputs, targets
+
     def __len__(self):
         """
         Number of batches for generator.
@@ -359,6 +384,6 @@ class CarsGenerator(keras.utils.Sequence):
         Keras sequence method for generating batches.
         """
         group = self.groups[index]
-        inputs, targets = self.compute_input_output(group)
+        inputs, targets = self.compute_density_input_output(group)
 
         return inputs, targets

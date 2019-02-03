@@ -333,14 +333,10 @@ class Anchors(keras.layers.Layer):
 
     def compute_output_shape(self, input_shape):
         if None not in input_shape[1:]:
-            if keras.backend.image_data_format() == 'channels_first':
-                total = np.prod(input_shape[2:4]) * self.num_anchors
-            else:
-                total = np.prod(input_shape[1:3]) * self.num_anchors
-
-            return (input_shape[0], total, 4)
+            total = np.prod(input_shape[1:3]) * self.num_anchors
+            return input_shape[0], total, 4
         else:
-            return (input_shape[0], None, 4)
+            return input_shape[0], None, 4
 
     def get_config(self):
         config = super(Anchors, self).get_config()
@@ -364,10 +360,7 @@ class UpsampleLike(keras.layers.Layer):
         return tf.image.resize_images(source, (target_shape[1], target_shape[2]), method='nearest')
 
     def compute_output_shape(self, input_shape):
-        if keras.backend.image_data_format() == 'channels_first':
-            return (input_shape[0][0], input_shape[0][1]) + input_shape[1][2:4]
-        else:
-            return (input_shape[0][0],) + input_shape[1][1:3] + (input_shape[0][-1],)
+        return (input_shape[0][0],) + input_shape[1][1:3] + (input_shape[0][-1],)
 
 
 class RegressBoxes(keras.layers.Layer):
@@ -424,12 +417,8 @@ class ClipBoxes(keras.layers.Layer):
     def call(self, inputs, **kwargs):
         image, boxes = inputs
         shape = keras.backend.cast(keras.backend.shape(image), keras.backend.floatx())
-        if keras.backend.image_data_format() == 'channels_first':
-            height = shape[2]
-            width = shape[3]
-        else:
-            height = shape[1]
-            width = shape[2]
+        height = shape[1]
+        width = shape[2]
         x1 = tf.clip_by_value(boxes[:, :, 0], 0, width)
         y1 = tf.clip_by_value(boxes[:, :, 1], 0, height)
         x2 = tf.clip_by_value(boxes[:, :, 2], 0, width)

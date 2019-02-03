@@ -117,7 +117,7 @@ def filter_pred(pred):
 
 if __name__ == '__main__':
     # preds = evaluate('./app_resnet_cars_10.h5', custom_resnet=True, dataset_root='../datasets')
-    preds = pickle.load(open('resnet_04.h5.results.pkl', 'rb'))
+    preds = pickle.load(open('resnet_09.h5.results.pkl', 'rb'))
 
     preds = list(map(filter_pred, preds))
 
@@ -126,6 +126,6 @@ if __name__ == '__main__':
         print("Confidence: {}%, ME: {}, RMSE: {}".format(confidence, me, rmse))
 
     # visualize 10 top misses
-    preds = list(map(lambda tup: (tup[0], ([t for t in tup[1][0] if t[1] > 0.66], tup[1][1])), preds))
-    top_misses = list(sorted(preds, key=lambda tup: abs(len([t for t in tup[1][0] if t[1] > 0.66]) - len(tup[1][1])), reverse=True))[:10]
+    preds = list(map(lambda tup: (tup[0], ([t for t in tup[1][0] if t[1] > 0.54], tup[1][1])), preds))
+    top_misses = list(sorted(preds, key=lambda tup: abs(len([t for t in tup[1][0] if t[1] > 0.54]) - len(tup[1][1])), reverse=True))[:10]
     print(list(map(lambda tup: visualize_predictions(tup[0], tup[1]), top_misses)))

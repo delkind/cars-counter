@@ -80,8 +80,6 @@ def create_classification_model(
     )(outputs)
 
     # reshape output and apply sigmoid
-    if keras.backend.image_data_format() == 'channels_first':
-        outputs = keras.layers.Permute((2, 3, 1), name='pyramid_classification_permute')(outputs)
     outputs = keras.layers.Reshape((-1, num_classes), name='pyramid_classification_reshape')(outputs)
     outputs = keras.layers.Activation('sigmoid', name='pyramid_classification_sigmoid')(outputs)
     return keras.models.Model(inputs=inputs, outputs=outputs, name=name)
@@ -197,6 +195,14 @@ def create_retinanet_train(backbone, num_classes=1, num_anchors=9, feature_size=
                                                                                       for f in pyramid_features])
     return keras.models.Model(inputs=[backbone.get_input()], outputs=[regression_pyramid,
                                                                       classification_pyramid], name=name)
+
+
+def create_retinanet_regression(backbone, num_classes=1, num_anchors=9, feature_size=256, name='retinanet'):
+    new_input = keras.layers.Input(shape=(720, 1280, 3))
+    pyramid_features = create_pyramid_features(backbone.model(new_input)[1:], feature_size)
+    x = keras.layers.Concatenate()([keras.layers.Flatten()(f) for f in pyramid_features])
+    x = keras.layers.Dense(1, activation='relu')(x)
+    return keras.models.Model(input=new_input, outputs=[x])
 
 
 def create_pyramid_features(pyramid_outputs, feature_size):

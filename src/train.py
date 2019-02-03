@@ -4,7 +4,7 @@ import keras
 
 from src.generator import CarsGenerator, CarsDataset
 from src.misc import RedirectModel, smooth_l1, focal
-from src.model import create_retinanet_train, CustomResNetBackBone, AppResNetBackBone
+from src.model import create_retinanet_train, CustomResNetBackBone, AppResNetBackBone, create_retinanet_regression
 from src.utils.transform import random_transform_generator
 
 
@@ -87,9 +87,11 @@ def train(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e-5, start_
     if start_snapshot:
         model = keras.models.load_model(start_snapshot, custom_objects=backbone.get_custom_objects())
     else:
-        model = create_retinanet_train(backbone())
-        model.compile(loss={'regression': smooth_l1(), 'classification': focal()},
-                      optimizer=keras.optimizers.Adam(lr=lr, clipnorm=0.001))
+        model = create_retinanet_regression(backbone())
+        model.compile(loss=keras.losses.mean_squared_error, optimizer=keras.optimizers.Adam(lr=lr, clipnorm=0.001))
+        # model = create_retinanet_train(backbone())
+        # model.compile(loss={'regression': smooth_l1(), 'classification': focal()},
+        #               optimizer=keras.optimizers.Adam(lr=lr, clipnorm=0.001))
 
     if augmentation:
         transform_generator = random_transform_generator(
