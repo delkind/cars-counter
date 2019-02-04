@@ -202,6 +202,8 @@ def create_retinanet_regression(backbone, num_classes=1, num_anchors=9, feature_
     pyramid_features = create_pyramid_features(backbone.model(new_input)[1:], feature_size)
     x = keras.layers.Concatenate()([keras.layers.Flatten()(f) for f in pyramid_features])
     x = keras.layers.Dropout(0.8)(x)
+    x = keras.layers.Dense(50, activation='relu')(x)
+    x = keras.layers.Dropout(0.9)(x)
     x = keras.layers.Dense(1, activation='linear')(x)
     return keras.models.Model(inputs=[new_input], outputs=[x])
 
