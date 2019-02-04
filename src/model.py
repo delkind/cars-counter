@@ -197,20 +197,19 @@ def create_retinanet_train(backbone, num_classes=1, num_anchors=9, feature_size=
                                                                       classification_pyramid], name=name)
 
 
-def create_regression_layers(x):
-    x = keras.layers.Conv2D(filters=128, kernel_size=1, strides=1, activation='relu')(x)
-    x = keras.layers.AveragePooling2D()(x)
-    x = keras.layers.Conv2D(filters=64, kernel_size=1, strides=1, activation='relu')(x)
-    x = keras.layers.AveragePooling2D()(x)
-    x = keras.layers.Conv2D(filters=32, kernel_size=1, strides=1, activation='relu')(x)
-    x = keras.layers.AveragePooling2D()(x)
+def create_counting_layers(x):
+    x = keras.layers.Conv2D(filters=16, kernel_size=1, strides=1, activation='relu')(x)
     return keras.layers.Flatten()(x)
 
 
-def create_retinanet_regression(backbone, num_classes=1, num_anchors=9, feature_size=256, name='retinanet'):
+def create_retinanet_counting(base_model):
+    pyramid_features = [layer.output for layer in base_model.layers if layer.name in ['P3', 'P4', 'P5', 'P6', 'P7']]
     new_input = keras.layers.Input(shape=(720, 1280, 3))
-    x = keras.layers.Concatenate()([create_regression_layers(f) for f in backbone.model(new_input)[1:]])
-    x = keras.layers.Dropout(0.8)(x)
+    model = keras.models.Model(base_model.inputs, outputs=pyramid_features)
+    for layer in model.layers:
+        layer.trainable = False
+
+    x = keras.layers.Concatenate()([create_counting_layers(f) for f in model(new_input)])
     x = keras.layers.Dense(128, activation='relu')(x)
     x = keras.layers.Dropout(0.9)(x)
     x = keras.layers.Dense(1, activation='linear')(x)

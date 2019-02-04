@@ -4,7 +4,7 @@ import keras
 
 from src.generator import CarsGenerator, CarsDataset
 from src.misc import RedirectModel, smooth_l1, focal
-from src.model import create_retinanet_train, CustomResNetBackBone, AppResNetBackBone, create_retinanet_regression
+from src.model import create_retinanet_train, CustomResNetBackBone, AppResNetBackBone, create_retinanet_counting
 from src.utils.transform import random_transform_generator
 
 
@@ -80,18 +80,21 @@ def create_callbacks(model,
 
 def train(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e-5, start_snapshot=None, validation_split=0.1,
           tensorboard_dir='logs/', custom_resnet=True, augmentation=True, snapshot_path='model_snapshots',
-          snapshot_base_name="resnet", validation_set=None):
+          snapshot_base_name="resnet", validation_set=None, random_occlusions=False, counting_model=True):
     dataset = CarsDataset(dataset_path, validation_split=validation_split, validation_set=validation_set)
 
     backbone = CustomResNetBackBone if custom_resnet else AppResNetBackBone
     if start_snapshot:
         model = keras.models.load_model(start_snapshot, custom_objects=backbone.get_custom_objects())
     else:
-        model = create_retinanet_regression(backbone())
+        model = create_retinanet_train(backbone())
+        if not counting_model:
+            model.compile(loss={'regression': smooth_l1(), 'classification': focal()},
+                          optimizer=keras.optimizers.Adam(lr=lr, clipnorm=0.001))
+
+    if counting_model:
+        model = create_retinanet_counting(model)
         model.compile(loss=keras.losses.mean_squared_error, optimizer=keras.optimizers.Adam(lr=lr, clipnorm=0.001))
-        # model = create_retinanet_train(backbone())
-        # model.compile(loss={'regression': smooth_l1(), 'classification': focal()},
-        #               optimizer=keras.optimizers.Adam(lr=lr, clipnorm=0.001))
 
     if augmentation:
         transform_generator = random_transform_generator(
@@ -114,12 +117,14 @@ def train(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e-5, start_
                                         transform_generator=transform_generator,
                                         batch_size=batch_size,
                                         image_min_side=720,
-                                        image_max_side=1280)
+                                        image_max_side=1280,
+                                        random_occlusions=random_occlusions)
         val_generator = CarsGenerator(dataset.validation,
                                       preprocess_image=backbone.get_preprocess_image(),
                                       batch_size=batch_size,
                                       image_min_side=720,
-                                      image_max_side=1280)
+                                      image_max_side=1280,
+                                      random_occlusions=False)
         validation_steps = len(val_generator)
         os.makedirs(snapshot_path, exist_ok=True)
         with open('{}/validation.txt'.format(snapshot_path), "wt") as f:
@@ -132,7 +137,8 @@ def train(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e-5, start_
                                         transform_generator=random_transform_generator(flip_x_chance=0.5),
                                         batch_size=batch_size,
                                         image_min_side=720,
-                                        image_max_side=1280)
+                                        image_max_side=1280,
+                                        random_occlusions=random_occlusions)
         val_generator = None
         validation_steps = None
 
