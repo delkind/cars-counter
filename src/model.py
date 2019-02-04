@@ -198,12 +198,12 @@ def create_retinanet_train(backbone, num_classes=1, num_anchors=9, feature_size=
 
 
 def create_regression_layers(x):
-    x = keras.layers.Conv2D(filters=16, kernel_size=1, strides=1, activation='relu')(x)
-    x = keras.layers.MaxPooling2D()(x)
-    x = keras.layers.Conv2D(filters=4, kernel_size=1, strides=1, activation='relu')(x)
-    x = keras.layers.MaxPooling2D()(x)
-    x = keras.layers.Conv2D(filters=2, kernel_size=1, strides=1, activation='relu')(x)
-    x = keras.layers.MaxPooling2D()(x)
+    x = keras.layers.Conv2D(filters=128, kernel_size=1, strides=1, activation='relu')(x)
+    x = keras.layers.AveragePooling2D()(x)
+    x = keras.layers.Conv2D(filters=64, kernel_size=1, strides=1, activation='relu')(x)
+    x = keras.layers.AveragePooling2D()(x)
+    x = keras.layers.Conv2D(filters=32, kernel_size=1, strides=1, activation='relu')(x)
+    x = keras.layers.AveragePooling2D()(x)
     return keras.layers.Flatten()(x)
 
 
@@ -211,7 +211,7 @@ def create_retinanet_regression(backbone, num_classes=1, num_anchors=9, feature_
     new_input = keras.layers.Input(shape=(720, 1280, 3))
     x = keras.layers.Concatenate()([create_regression_layers(f) for f in backbone.model(new_input)[1:]])
     x = keras.layers.Dropout(0.8)(x)
-    x = keras.layers.Dense(50, activation='relu')(x)
+    x = keras.layers.Dense(128, activation='relu')(x)
     x = keras.layers.Dropout(0.9)(x)
     x = keras.layers.Dense(1, activation='linear')(x)
     return keras.models.Model(inputs=[new_input], outputs=[x])
