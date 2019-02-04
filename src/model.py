@@ -203,9 +203,12 @@ def create_counting_layers(x):
 
 
 def create_retinanet_counting(base_model, freeze_base_model=True):
-    pyramid_features = [layer.output for layer in base_model.layers if layer.name in ['P3', 'P4', 'P5', 'P6', 'P7']]
+    layer_names = ['bn%s_branch2c' % layer_name for layer_name in ['2c', '3d', '4f', '5c']]
+    outputs = [base_model.layers[i + 2].output for i, layer in enumerate(base_model.layers) if layer.name in layer_names]
+
+    # pyramid_features = [layer.output for layer in base_model.layers if layer.name in ['C3', 'C4', 'C5']]
     new_input = keras.layers.Input(shape=(720, 1280, 3))
-    model = keras.models.Model(base_model.inputs, outputs=pyramid_features)
+    model = keras.models.Model(base_model.inputs, outputs=outputs[1:])
 
     if freeze_base_model:
         for layer in model.layers:
