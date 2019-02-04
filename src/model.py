@@ -197,10 +197,19 @@ def create_retinanet_train(backbone, num_classes=1, num_anchors=9, feature_size=
                                                                       classification_pyramid], name=name)
 
 
+def create_regression_layers(x):
+    x = keras.layers.Conv2D(filters=16, kernel_size=1, strides=1, activation='relu')(x)
+    x = keras.layers.MaxPooling2D()(x)
+    x = keras.layers.Conv2D(filters=4, kernel_size=1, strides=1, activation='relu')(x)
+    x = keras.layers.MaxPooling2D()(x)
+    x = keras.layers.Conv2D(filters=2, kernel_size=1, strides=1, activation='relu')(x)
+    x = keras.layers.MaxPooling2D()(x)
+    return keras.layers.Flatten()(x)
+
+
 def create_retinanet_regression(backbone, num_classes=1, num_anchors=9, feature_size=256, name='retinanet'):
     new_input = keras.layers.Input(shape=(720, 1280, 3))
-    pyramid_features = create_pyramid_features(backbone.model(new_input)[1:], feature_size)
-    x = keras.layers.Concatenate()([keras.layers.Flatten()(f) for f in pyramid_features])
+    x = keras.layers.Concatenate()([create_regression_layers(f) for f in backbone.model(new_input)[1:]])
     x = keras.layers.Dropout(0.8)(x)
     x = keras.layers.Dense(50, activation='relu')(x)
     x = keras.layers.Dropout(0.9)(x)
