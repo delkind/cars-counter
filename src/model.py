@@ -198,25 +198,14 @@ def create_retinanet_train(backbone, num_classes=1, num_anchors=9, feature_size=
 
 
 def create_counting_layers(x):
-    x = keras.layers.Conv2D(filters=16, kernel_size=1, strides=1, activation='relu')(x)
+    x = keras.layers.Conv2D(filters=x.shape[-1].value // 32, kernel_size=1, strides=1, activation='relu')(x)
     return keras.layers.Flatten()(x)
 
 
 def create_retinanet_counting(base_model, freeze_base_model=True):
-    layer_names = ['bn%s_branch2c' % layer_name for layer_name in ['2c', '3d', '4f', '5c']]
-    outputs = [base_model.layers[i + 2].output for i, layer in enumerate(base_model.layers) if layer.name in layer_names]
-
-    # pyramid_features = [layer.output for layer in base_model.layers if layer.name in ['C3', 'C4', 'C5']]
     new_input = keras.layers.Input(shape=(720, 1280, 3))
-    model = keras.models.Model(base_model.inputs, outputs=outputs[1:])
-
-    if freeze_base_model:
-        for layer in model.layers:
-            layer.trainable = False
-
-    x = keras.layers.Concatenate()([create_counting_layers(f) for f in model(new_input)])
-    x = keras.layers.Dense(128, activation='relu')(x)
-    x = keras.layers.Dropout(0.9)(x)
+    x = keras.models.Model(inputs=base_model.inputs, outputs=base_model.outputs[1])(new_input)
+    x = keras.layers.Flatten()(x)
     x = keras.layers.Dense(1, activation='linear')(x)
     return keras.models.Model(inputs=[new_input], outputs=[x])
 
