@@ -78,11 +78,6 @@ def create_callbacks(model,
     return callbacks
 
 
-def normalized_mean_squared_error(y_true, y_pred):
-    import keras.backend as K
-    return K.mean(K.square(y_pred - y_true), axis=-1) / y_true + 1e-20
-
-
 def train(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e-5, start_snapshot=None, validation_split=0.1,
           tensorboard_dir='logs/', custom_resnet=True, augmentation=True, snapshot_path='model_snapshots',
           snapshot_base_name="resnet", validation_set=None, random_occlusions=False, counting_model=True,
@@ -100,7 +95,7 @@ def train(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e-5, start_
 
     if counting_model:
         model = create_retinanet_counting(model, freeze_base_model=freeze_base_model)
-        model.compile(loss=normalized_mean_squared_error, optimizer=keras.optimizers.Adam(lr=lr, clipnorm=0.001))
+        model.compile(loss=keras.losses.logcosh, optimizer=keras.optimizers.Adam(lr=lr, clipnorm=0.001))
 
     if augmentation:
         transform_generator = random_transform_generator(
