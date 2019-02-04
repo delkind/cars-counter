@@ -202,12 +202,14 @@ def create_counting_layers(x):
     return keras.layers.Flatten()(x)
 
 
-def create_retinanet_counting(base_model):
+def create_retinanet_counting(base_model, freeze_base_model=True):
     pyramid_features = [layer.output for layer in base_model.layers if layer.name in ['P3', 'P4', 'P5', 'P6', 'P7']]
     new_input = keras.layers.Input(shape=(720, 1280, 3))
     model = keras.models.Model(base_model.inputs, outputs=pyramid_features)
-    for layer in model.layers:
-        layer.trainable = False
+
+    if freeze_base_model:
+        for layer in model.layers:
+            layer.trainable = False
 
     x = keras.layers.Concatenate()([create_counting_layers(f) for f in model(new_input)])
     x = keras.layers.Dense(128, activation='relu')(x)

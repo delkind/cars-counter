@@ -80,7 +80,8 @@ def create_callbacks(model,
 
 def train(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e-5, start_snapshot=None, validation_split=0.1,
           tensorboard_dir='logs/', custom_resnet=True, augmentation=True, snapshot_path='model_snapshots',
-          snapshot_base_name="resnet", validation_set=None, random_occlusions=False, counting_model=True):
+          snapshot_base_name="resnet", validation_set=None, random_occlusions=False, counting_model=True,
+          freeze_base_model=True, steps_per_epoch=None):
     dataset = CarsDataset(dataset_path, validation_split=validation_split, validation_set=validation_set)
 
     backbone = CustomResNetBackBone if custom_resnet else AppResNetBackBone
@@ -93,7 +94,7 @@ def train(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e-5, start_
                           optimizer=keras.optimizers.Adam(lr=lr, clipnorm=0.001))
 
     if counting_model:
-        model = create_retinanet_counting(model)
+        model = create_retinanet_counting(model, freeze_base_model=freeze_base_model)
         model.compile(loss=keras.losses.mean_squared_error, optimizer=keras.optimizers.Adam(lr=lr, clipnorm=0.001))
 
     if augmentation:
@@ -147,9 +148,13 @@ def train(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e-5, start_
                                  tensorboard_dir=tensorboard_dir,
                                  snapshot_path=snapshot_path,
                                  snapshot_name_base=snapshot_base_name)
+
+    if steps_per_epoch is None:
+        steps_per_epoch = len(train_generator)
+
     model.fit_generator(
         generator=train_generator,
-        steps_per_epoch=len(train_generator),
+        steps_per_epoch=steps_per_epoch,
         callbacks=callbacks,
         epochs=epochs,
         validation_data=val_generator,
