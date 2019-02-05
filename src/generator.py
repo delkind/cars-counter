@@ -48,6 +48,7 @@ class CarsDataset:
             self.validation = dict(images[split:])
         else:
             self.train = dict(images)
+            self.validation = None
 
     @staticmethod
     def filter_bboxes(bboxes):
@@ -82,6 +83,7 @@ class CarsGenerator(keras.utils.Sequence):
             self,
             images,
             preprocess_image,
+            regression_model=False,
             transform_generator=None,
             batch_size=1,
             group_method='ratio',  # one of 'none', 'random', 'ratio'
@@ -97,6 +99,7 @@ class CarsGenerator(keras.utils.Sequence):
             base_dir: Directory w.r.t. where the files are to be searched.
         """
 
+        self.regression_model = regression_model
         self.image_names = []
         self.image_data = {}
 
@@ -344,7 +347,7 @@ class CarsGenerator(keras.utils.Sequence):
 
         return inputs, targets
 
-    def compute_density_input_output(self, group):
+    def compute_regression_input_output(self, group):
         """ Compute inputs and target outputs for the network.
         """
         # load images and annotations
@@ -384,6 +387,10 @@ class CarsGenerator(keras.utils.Sequence):
         Keras sequence method for generating batches.
         """
         group = self.groups[index]
-        inputs, targets = self.compute_density_input_output(group)
+
+        if self.regression_model:
+            inputs, targets = self.compute_regression_input_output(group)
+        else:
+            inputs, targets = self.compute_input_output(group)
 
         return inputs, targets

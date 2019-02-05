@@ -78,25 +78,51 @@ def create_callbacks(model,
     return callbacks
 
 
-def train(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e-5, start_snapshot=None, validation_split=0.1,
-          tensorboard_dir='logs/', custom_resnet=True, augmentation=True, snapshot_path='model_snapshots',
-          snapshot_base_name="resnet", validation_set=None, random_occlusions=False, counting_model=True,
-          freeze_base_model=True, steps_per_epoch=None):
-    dataset = CarsDataset(dataset_path, validation_split=validation_split, validation_set=validation_set)
-
-    backbone = CustomResNetBackBone if custom_resnet else AppResNetBackBone
+def create_retinanet_model(backbone, start_snapshot):
     if start_snapshot:
         model = keras.models.load_model(start_snapshot, custom_objects=backbone.get_custom_objects())
     else:
         model = create_retinanet_train(backbone())
-        if not counting_model:
-            model.compile(loss={'regression': smooth_l1(), 'classification': focal()},
-                          optimizer=keras.optimizers.Adam(lr=lr, clipnorm=0.001))
+    return model
 
-    if counting_model:
+
+def train_detection(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e-5, start_snapshot=None,
+                    validation_split=0.1,
+                    tensorboard_dir='logs/', custom_resnet=True, augmentation=True, snapshot_path='model_snapshots',
+                    snapshot_base_name="resnet", validation_set=None, random_occlusions=False,
+                    freeze_base_model=True, steps_per_epoch=None):
+    backbone = CustomResNetBackBone if custom_resnet else AppResNetBackBone
+    model = create_retinanet_model(backbone, start_snapshot)
+
+    model.compile(loss={'regression': smooth_l1(), 'classification': focal()},
+                  optimizer=keras.optimizers.Adam(lr=lr, clipnorm=0.001))
+
+    initiate_training(augmentation, backbone, batch_size, dataset_path, epochs, model, random_occlusions,
+                      snapshot_base_name, snapshot_path, steps_per_epoch, tensorboard_dir, validation_set,
+                      validation_split, regression_model=False)
+
+
+def train_counting(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e-5, start_snapshot=None,
+                   validation_split=0.1, retinanet_snapshot=None,
+                   tensorboard_dir='logs/', custom_resnet=True, augmentation=True, snapshot_path='model_snapshots',
+                   snapshot_base_name="resnet", validation_set=None, random_occlusions=False,
+                   freeze_base_model=True, steps_per_epoch=None):
+    backbone = CustomResNetBackBone if custom_resnet else AppResNetBackBone
+    if start_snapshot:
+        model = keras.models.load_model(start_snapshot, custom_objects=backbone.get_custom_objects())
+    else:
+        model = create_retinanet_model(backbone, start_snapshot=retinanet_snapshot)
         model = create_retinanet_counting(model, freeze_base_model=freeze_base_model)
         model.compile(loss=keras.losses.mean_squared_error, optimizer=keras.optimizers.Adam(lr=lr, clipnorm=0.001))
 
+    initiate_training(augmentation, backbone, batch_size, dataset_path, epochs, model, random_occlusions,
+                      snapshot_base_name, snapshot_path, steps_per_epoch, tensorboard_dir, validation_set,
+                      validation_split, regression_model=True)
+
+
+def initiate_training(augmentation, backbone, batch_size, dataset_path, epochs, model, random_occlusions,
+                      snapshot_base_name, snapshot_path, steps_per_epoch, tensorboard_dir, validation_set,
+                      validation_split, regression_model):
     if augmentation:
         transform_generator = random_transform_generator(
             min_rotation=-0.1,
@@ -112,16 +138,23 @@ def train(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e-5, start_
     else:
         transform_generator = random_transform_generator(flip_x_chance=0.5)
 
-    if validation_split > 0:
-        train_generator = CarsGenerator(dataset.train,
-                                        preprocess_image=backbone.get_preprocess_image(),
-                                        transform_generator=transform_generator,
-                                        batch_size=batch_size,
-                                        image_min_side=720,
-                                        image_max_side=1280,
-                                        random_occlusions=random_occlusions)
+    dataset = CarsDataset(dataset_path, validation_split=validation_split, validation_set=validation_set)
+
+    val_generator = None
+    validation_steps = None
+    train_generator = CarsGenerator(dataset.train,
+                                    preprocess_image=backbone.get_preprocess_image(),
+                                    regression_model=regression_model,
+                                    transform_generator=transform_generator,
+                                    batch_size=batch_size,
+                                    image_min_side=720,
+                                    image_max_side=1280,
+                                    random_occlusions=random_occlusions)
+
+    if dataset.validation:
         val_generator = CarsGenerator(dataset.validation,
                                       preprocess_image=backbone.get_preprocess_image(),
+                                      regression_model=regression_model,
                                       batch_size=batch_size,
                                       image_min_side=720,
                                       image_max_side=1280,
@@ -132,23 +165,11 @@ def train(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e-5, start_
             for img_path in dataset.validation.keys():
                 print(img_path, file=f)
 
-    else:
-        train_generator = CarsGenerator(dataset.train,
-                                        preprocess_image=backbone.get_preprocess_image(),
-                                        transform_generator=random_transform_generator(flip_x_chance=0.5),
-                                        batch_size=batch_size,
-                                        image_min_side=720,
-                                        image_max_side=1280,
-                                        random_occlusions=random_occlusions)
-        val_generator = None
-        validation_steps = None
-
     callbacks = create_callbacks(model,
                                  batch_size=batch_size,
                                  tensorboard_dir=tensorboard_dir,
                                  snapshot_path=snapshot_path,
                                  snapshot_name_base=snapshot_base_name)
-
     if steps_per_epoch is None:
         steps_per_epoch = len(train_generator)
 
@@ -167,4 +188,4 @@ def train(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e-5, start_
 
 
 if __name__ == '__main__':
-    train(custom_resnet=True, snapshot_base_name='augmented', validation_set='validation.txt')
+    train_detection(custom_resnet=True, snapshot_base_name='augmented', validation_set='validation.txt')
