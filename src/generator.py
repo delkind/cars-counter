@@ -35,7 +35,7 @@ class CarsDataset:
         images = _process_dataset_(base_dir + '/PUCPR+_devkit/data', annotation)
         images += _process_dataset_(base_dir + '/CARPK_devkit/data', annotation)
         images = [(k, [[int(n) for n in s.split()] for s in v]) for k, v in images]
-        images = self.sanitize_data(images)
+        images = self.clean_data(images)
         random.shuffle(images)
 
         if validation_set:
@@ -64,7 +64,7 @@ class CarsDataset:
             return np.arange(bboxes.shape[0])
 
     @staticmethod
-    def sanitize_data(images):
+    def clean_data(images):
         out = []
         for image, annotations in images:
             if annotations:
