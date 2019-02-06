@@ -90,7 +90,7 @@ def train_detection(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e
                     validation_split=0.1,
                     tensorboard_dir='logs/', custom_resnet=True, augmentation=True, snapshot_path='model_snapshots',
                     snapshot_base_name="resnet", validation_set=None, random_occlusions=False,
-                    freeze_base_model=True, steps_per_epoch=None):
+                    steps_per_epoch=None):
     backbone = CustomResNetBackBone if custom_resnet else AppResNetBackBone
     model = create_retinanet_model(backbone, start_snapshot)
 
@@ -188,4 +188,4 @@ def initiate_training(augmentation, backbone, batch_size, dataset_path, epochs, 
 
 
 if __name__ == '__main__':
-    train_detection(custom_resnet=True, snapshot_base_name='augmented', validation_set='validation.txt')
+    train_counting(custom_resnet=True, snapshot_base_name='augmented', validation_set='validation.txt')

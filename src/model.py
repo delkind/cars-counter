@@ -204,6 +204,9 @@ def create_counting_layers(x):
 
 def create_retinanet_counting(base_model, freeze_base_model=True):
     new_input = keras.layers.Input(shape=(720, 1280, 3))
+    if freeze_base_model:
+        for layer in base_model:
+            layer.trainable = False
     x = keras.models.Model(inputs=base_model.inputs, outputs=base_model.outputs[1])(new_input)
     x = keras.layers.Flatten()(x)
     x = keras.layers.Dense(128)(x)
