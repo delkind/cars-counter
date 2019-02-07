@@ -210,7 +210,7 @@ def create_retinanet_counting(base_model, freeze_base_model=True):
     from keras_resnet.layers import BatchNormalization
     new_input = keras.layers.Input(shape=(720, 1280, 3))
     if freeze_base_model:
-        for layer in base_model:
+        for layer in base_model.layers:
             layer.trainable = False
     x = keras.models.Model(inputs=base_model.inputs, outputs=base_model.outputs[1])(new_input)
     x = keras.layers.Flatten()(x)
