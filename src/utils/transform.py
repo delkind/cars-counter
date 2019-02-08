@@ -201,13 +201,32 @@ def change_transform_origin(transform, center):
 
 
 def random_occlusions(image, bboxes, min_occlusion=0.5, max_occlusion=0.9):
+    """
+    Add random occlusions (patches of random uniform noise over parts of objects)
+    :param image: image to transform
+    :param bboxes: objects bounding boxes
+    :param min_occlusion: minimum occlusion area (as fraction of the bounding box area)
+    :param max_occlusion: maximum occlusion area (as fraction of the bounding box area)
+    """
     for raw_bbox in bboxes:
+        # rounding to integer
         bbox = [int(n) for n in raw_bbox]
+
+        # compute width and height of the bbox
         sizes = [bbox[3] - bbox[1], bbox[2] - bbox[0]]
+
+        # randomly choose the dimension to occlude partially
         revealed_dim = random.randint(0, 1)
+
+        # randomly choose the occlusion area
         occlusion = random.uniform(min_occlusion, max_occlusion)
+
+        # reduce the revealed dimension size to fit the occlusion area
         sizes[revealed_dim] = int(sizes[revealed_dim] * occlusion)
+
+        # generate random noise patch
         patch = np.random.randint(0, 256, (*sizes, 3))
+
         location = random.randint(0, 1)
         if location == 0:
             image[bbox[1]:bbox[1] + sizes[0], bbox[0]:bbox[0] + sizes[1], :] = patch

@@ -203,18 +203,19 @@ def create_counting_layers(x):
 
 
 def create_retinanet_counting(base_model, freeze_base_model=True):
-    # Both keras and keras_resnet define BatchNormalization and since their initializers' signatures are different
-    # you cannot mix them in the same model otherwise it will fail to load
-    # here we assume that the model from keras_resnet is used. This assumption should be revised if the code is to be
-    # used anywhere besides the challenge
-    from keras_resnet.layers import BatchNormalization
+    """
+    Create counting model based on RetinaNet classification head
+    :param base_model: base RetinaNet model
+    :param freeze_base_model: True if base model should be frozen during training
+    :return: counting model
+    """
+
     new_input = keras.layers.Input(shape=(720, 1280, 3))
     if freeze_base_model:
         for layer in base_model.layers:
             layer.trainable = False
     x = keras.models.Model(inputs=base_model.inputs, outputs=base_model.outputs[1])(new_input)
     x = keras.layers.Flatten()(x)
-    x = BatchNormalization(False)(x)
     x = keras.layers.Dense(128)(x)
     x = keras.layers.LeakyReLU()(x)
     x = keras.layers.Dropout(0.8)(x)

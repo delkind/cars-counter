@@ -12,17 +12,8 @@ from src.utils.image import adjust_transform_for_image, apply_transform, resize_
 from src.utils.transform import transform_aabb, random_occlusions
 
 
-def _process_dataset_(root, annotation):
-    train_set = set(open(root + '/ImageSets/{}.txt'.format(annotation)).read().splitlines())
-    images = [
-        (root + '/Images/' + img, open(root + '/Annotations/' + os.path.splitext(img)[0] + '.txt').read().splitlines())
-        for img in os.listdir(root + '/Images') if os.path.splitext(img)[0] in train_set]
-    return images
-
-
 def read_image_bgr(path):
     """ Read an image in BGR format.
-
     Args
         path: Path to the image.
     """
@@ -31,27 +22,71 @@ def read_image_bgr(path):
 
 
 class CarsDataset:
+    """
+    Dataset processing - this class processes the dataset
+    Tailored specifically for processing the PUCPR+ and CARPK datasets
+    """
+
     def __init__(self, base_dir, annotation='train', validation_split=0, validation_set=None):
-        images = _process_dataset_(base_dir + '/PUCPR+_devkit/data', annotation)
-        images += _process_dataset_(base_dir + '/CARPK_devkit/data', annotation)
+        """
+        Initialize the dataset - process annotation files and build batches
+        :param base_dir: directory where both datasets reside. Certain directory structure is assumed
+        :param annotation: text/train - which annotations to use
+        :param validation_split: fraction of dataset to use
+        :param validation_set: file containing set of images that should constitute validation set
+            if this parameter is specified, validation_split parameter is ignored
+        """
+        # create dictionary containing both datasets parse results
+        images = self._process_dataset_(base_dir + '/PUCPR+_devkit/data', annotation)
+        images += self._process_dataset_(base_dir + '/CARPK_devkit/data', annotation)
+
+        # for each image process the annotations and turn them to list of bounding boxes
         images = [(k, [[int(n) for n in s.split()] for s in v]) for k, v in images]
+
+        # remove invalid bounding boxes
         images = self.clean_data(images)
-        random.shuffle(images)
 
         if validation_set:
             validation_set = set(open(validation_set, "rt").read().splitlines())
             self.validation = dict([(image, ann) for (image, ann) in images if image in validation_set])
             self.train = dict([(image, ann) for (image, ann) in images if image not in validation_set])
         elif validation_split > 0:
+            # shuffle to create truly random split
+            random.shuffle(images)
+
+            # split the set into training and validation
             split = int(len(images) * (1 - validation_split))
             self.train = dict(images[:split])
             self.validation = dict(images[split:])
         else:
+            # use the whole set as training - no validation
             self.train = dict(images)
             self.validation = None
 
     @staticmethod
+    def _process_dataset_(root, annotation):
+        """
+        Process the directory containing the dataset - create dictionary containing images and annotations.
+        Cars datasets directory structure assumed
+        :param root: root directory of the dataset
+        :param annotation: which annotation file to use (train/test)
+        :return: dictionary containing images and respective bounding boxes (pre-cleaning)
+        """
+        train_set = set(open(root + '/ImageSets/{}.txt'.format(annotation)).read().splitlines())
+        images = [
+            (root + '/Images/' + img,
+             open(root + '/Annotations/' + os.path.splitext(img)[0] + '.txt').read().splitlines())
+            for img in os.listdir(root + '/Images') if os.path.splitext(img)[0] in train_set]
+        return images
+
+    @staticmethod
     def filter_bboxes(bboxes):
+        """
+        Filter invalid bboxes
+        :param bboxes: list of bounding boxes
+        :return: indices of valid bounding boxes. Boxes with IoU more than 0.5 will be filtered out leaving just one,
+        see project report for details.
+        """
         overlaps = compute_overlap(bboxes, bboxes)
         for i in range(overlaps.shape[0]):
             overlaps[i, i] = 0
@@ -65,6 +100,11 @@ class CarsDataset:
 
     @staticmethod
     def clean_data(images):
+        """
+        Perform the data cleaning
+        :param images: images list of tuples (image, annotations)
+        :return: list of filtered tuples
+        """
         out = []
         for image, annotations in images:
             if annotations:
@@ -83,7 +123,7 @@ class CarsGenerator(keras.utils.Sequence):
             self,
             images,
             preprocess_image,
-            regression_model=False,
+            counting_model=False,
             transform_generator=None,
             batch_size=1,
             group_method='ratio',  # one of 'none', 'random', 'ratio'
@@ -91,7 +131,7 @@ class CarsGenerator(keras.utils.Sequence):
             image_min_side=720,
             image_max_side=1280,
             transform_parameters=None,
-            random_occlusions=False
+            perform_random_occlusions=False
     ):
         """ Initialize a cars data generator.
 
@@ -99,7 +139,7 @@ class CarsGenerator(keras.utils.Sequence):
             base_dir: Directory w.r.t. where the files are to be searched.
         """
 
-        self.regression_model = regression_model
+        self.counting_model = counting_model
         self.image_names = []
         self.image_data = {}
 
@@ -119,7 +159,7 @@ class CarsGenerator(keras.utils.Sequence):
         self.image_max_side = image_max_side
         self.transform_parameters = transform_parameters or TransformParameters()
         self.preprocess_image = preprocess_image
-        self.random_occlusions = random_occlusions
+        self.random_occlusions = perform_random_occlusions
 
         # Define groups
         self.groups = self.group_images()
@@ -129,10 +169,10 @@ class CarsGenerator(keras.utils.Sequence):
             self.on_epoch_end()
 
     def size(self):
+        """
+        :return: number of different images
+        """
         return len(self.image_names)
-
-    def num_classes(self):
-        return 1
 
     def image_path(self, image_index):
         """ Returns the image path for image_index.
@@ -140,13 +180,28 @@ class CarsGenerator(keras.utils.Sequence):
         return self.image_names[image_index]
 
     def image_aspect_ratio(self, image_index):
+        """
+        Returns aspect ratio for the image
+        :param image_index: index of the image in the list
+        :return: ratio
+        """
         image = Image.open(self.image_path(image_index))
         return float(image.width) / float(image.height)
 
     def load_image(self, image_index):
+        """
+        Load image by index
+        :param image_index: index of the image path
+        :return: numpy array containing image pixels in BGR format
+        """
         return read_image_bgr(self.image_path(image_index))
 
     def load_annotations(self, image_index):
+        """
+        Process annotations and create annotation dictionary containing labels and bboxes
+        :param image_index: index of image
+        :return: annotations dictionary
+        """
         path = self.image_names[image_index]
         annotations = {'labels': np.empty((0,)), 'bboxes': np.empty((0, 4))}
 
@@ -162,10 +217,18 @@ class CarsGenerator(keras.utils.Sequence):
         return annotations
 
     def on_epoch_end(self):
+        """
+        Shuffle images at the end of every epoch for gradient descent to be truly stochastic
+        """
         if self.shuffle_groups:
             random.shuffle(self.groups)
 
     def load_annotations_group(self, group):
+        """
+        Perform annotation loading for the whole group
+        :param group: group (list)
+        :return: annotations for the group
+        """
         return [self.load_annotations(image_index) for image_index in group]
 
     @staticmethod
@@ -223,7 +286,6 @@ class CarsGenerator(keras.utils.Sequence):
     def random_transform_group(self, image_group, annotations_group):
         """ Randomly transforms each image and its annotations.
         """
-
         assert (len(image_group) == len(annotations_group))
 
         for index in range(len(image_group)):
@@ -279,7 +341,7 @@ class CarsGenerator(keras.utils.Sequence):
 
         # divide into groups, one group = one batch
         groups = [[order[x % len(order)] for x in range(i, i + self.batch_size)] for i in
-                       range(0, len(order), self.batch_size)]
+                  range(0, len(order), self.batch_size)]
 
         complete_groups = list(zip(groups, (False,) * len(groups)))
 
@@ -303,7 +365,8 @@ class CarsGenerator(keras.utils.Sequence):
 
         return image_batch
 
-    def compute_targets(self, image_group, annotations_group):
+    @staticmethod
+    def compute_targets(image_group, annotations_group):
         """ Compute target outputs for the network using images and their annotations.
         """
         # get the max image shape
@@ -314,13 +377,13 @@ class CarsGenerator(keras.utils.Sequence):
             anchors,
             image_group,
             annotations_group,
-            self.num_classes()
+            1
         )
 
         return list(batches)
 
-    def compute_input_output(self, group):
-        """ Compute inputs and target outputs for the network.
+    def compute_detection_input_output(self, group):
+        """ Compute inputs and target outputs batch for the detection (the original RetinaNet) network.
         """
         # load images and annotations
         image_group = self.load_image_group(group[0])
@@ -347,8 +410,8 @@ class CarsGenerator(keras.utils.Sequence):
 
         return inputs, targets
 
-    def compute_regression_input_output(self, group):
-        """ Compute inputs and target outputs for the network.
+    def compute_counting_input_output(self, group):
+        """ Compute inputs and target outputs batch for the counting network.
         """
         # load images and annotations
         image_group = self.load_image_group(group[0])
@@ -388,9 +451,9 @@ class CarsGenerator(keras.utils.Sequence):
         """
         group = self.groups[index]
 
-        if self.regression_model:
-            inputs, targets = self.compute_regression_input_output(group)
+        if self.counting_model:
+            inputs, targets = self.compute_counting_input_output(group)
         else:
-            inputs, targets = self.compute_input_output(group)
+            inputs, targets = self.compute_detection_input_output(group)
 
         return inputs, targets
