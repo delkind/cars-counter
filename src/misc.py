@@ -182,6 +182,11 @@ def smooth_l1(sigma=3.0):
 
 
 def huber_loss(clip_delta):
+    """
+    Huber loss for the counting model
+    :param clip_delta: clipping threshold
+    :return: the loss function
+    """
     def _huber_(y_true, y_pred):
         error = y_true - y_pred
         cond = tf.keras.backend.abs(error) < clip_delta

@@ -79,6 +79,13 @@ def create_callbacks(model,
 
 
 def create_retinanet_model(backbone, start_snapshot):
+    """
+    Create RetinaNet model for detection
+    :param backbone: Backbone class to use (can be either AppResNetBackbone to use keras.applications
+        or CustomResNetBackBone to use keras_resnet)
+    :param start_snapshot: path to saved model start from (to resume interrupted training)
+    :return: the model
+    """
     if start_snapshot:
         model = keras.models.load_model(start_snapshot, custom_objects=backbone.get_custom_objects())
     else:
@@ -91,6 +98,24 @@ def train_detection(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e
                     tensorboard_dir='logs/', custom_resnet=True, augmentation=True, snapshot_path='model_snapshots',
                     snapshot_base_name="resnet", validation_set=None, random_occlusions=False,
                     steps_per_epoch=None):
+    """
+    Create and train detection model
+    :param dataset_path: path to the cars datasets
+    :param batch_size: training batch size (usually 1, higher than 5 causes OOM on Colab)
+    :param epochs: number of epochs
+    :param lr: learning rate
+    :param start_snapshot: path to saved model start from (to resume interrupted training)
+    :param validation_split: fraction of the training set to put aside as validation set, 0 for no validation
+    :param tensorboard_dir: path to directory where tensorboard logs should be placed
+    :param custom_resnet: whether to use custom (keras_resnet) or applications (keras.application) resnet implementation
+    :param augmentation: True to perform data augmentations
+    :param snapshot_path: path where snapshots are saved
+    :param snapshot_base_name: base name template for model snapshots saved during training
+    :param validation_set: text file specifying image names that should be used as validation set. If this is not None,
+        validation_split is ignored
+    :param random_occlusions: True to augment training set with randomly occluded images
+    :param steps_per_epoch: Number of steps per training epoch
+    """
     backbone = CustomResNetBackBone if custom_resnet else AppResNetBackBone
     model = create_retinanet_model(backbone, start_snapshot)
 
@@ -107,6 +132,26 @@ def train_counting(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e-
                    tensorboard_dir='logs/', custom_resnet=True, augmentation=True, snapshot_path='model_snapshots',
                    snapshot_base_name="resnet", validation_set=None, random_occlusions=False,
                    freeze_base_model=True, steps_per_epoch=None):
+    """
+    Train the counting model based on ResNet
+    :param dataset_path: path to the cars datasets
+    :param batch_size: training batch size (usually 1, higher than 5 causes OOM on Colab)
+    :param epochs: number of epochs
+    :param lr: learning rate
+    :param start_snapshot: path to saved model start from (to resume interrupted training)
+    :param validation_split: fraction of the training set to put aside as validation set, 0 for no validation
+    :param retinanet_snapshot: Path to the RetinaNet snapshot to use (if none specified, new RetinaNet will be built)
+    :param tensorboard_dir: path to directory where tensorboard logs should be placed
+    :param custom_resnet: whether to use custom (keras_resnet) or applications (keras.application) resnet implementation
+    :param augmentation: True to perform data augmentations
+    :param snapshot_path: path where snapshots are saved
+    :param snapshot_base_name: base name template for model snapshots saved during training
+    :param validation_set: text file specifying image names that should be used as validation set. If this is not None,
+        validation_split is ignored
+    :param random_occlusions: True to add randomly occluded images to the training
+    :param freeze_base_model: True to freeze base RetinaNet model during training
+    :param steps_per_epoch: Number of steps per training epoch
+    """
     backbone = CustomResNetBackBone if custom_resnet else AppResNetBackBone
     if start_snapshot:
         model = keras.models.load_model(start_snapshot, custom_objects=backbone.get_custom_objects())
@@ -123,6 +168,24 @@ def train_counting(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e-
 def initiate_training(augmentation, backbone, batch_size, dataset_path, epochs, model, random_occlusions,
                       snapshot_base_name, snapshot_path, steps_per_epoch, tensorboard_dir, validation_set,
                       validation_split, counting_model):
+    """
+    Initiate training for the specified model
+    :param augmentation: True to perform data augmentations
+    :param backbone: backbone class
+    :param batch_size: training batch size (usually 1, higher than 5 causes OOM on Colab)
+    :param dataset_path: path to the cars datasets
+    :param epochs: number of epochs
+    :param model: the model to train
+    :param random_occlusions: True to add randomly occluded images to the training
+    :param snapshot_base_name: base name template for model snapshots saved during training
+    :param snapshot_path: path where snapshots are saved
+    :param steps_per_epoch: Number of steps per training epoch
+    :param tensorboard_dir: path to directory where tensorboard logs should be placed
+    :param validation_set: text file specifying image names that should be used as validation set. If this is not None,
+        validation_split is ignored
+    :param validation_split: fraction of the training set to put aside as validation set, 0 for no validation
+    :param counting_model: True if training the counting model
+    """
     if augmentation:
         transform_generator = random_transform_generator(
             min_rotation=-0.1,
@@ -185,7 +248,3 @@ def initiate_training(augmentation, backbone, batch_size, dataset_path, epochs, 
         use_multiprocessing=True,
         max_queue_size=10
     )
-
-
-if __name__ == '__main__':
-    train_counting(custom_resnet=True, snapshot_base_name='augmented')
