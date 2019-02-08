@@ -179,3 +179,19 @@ def smooth_l1(sigma=3.0):
         return keras.backend.sum(regression_loss) / normalizer
 
     return _smooth_l1
+
+
+def huber_loss(clip_delta):
+    def _huber_(y_true, y_pred):
+        error = y_true - y_pred
+        cond = tf.keras.backend.abs(error) < clip_delta
+
+        squared_loss = 0.5 * tf.keras.backend.square(error)
+        linear_loss = clip_delta * (tf.keras.backend.abs(error) - 0.5 * clip_delta)
+
+        return tf.where(cond, squared_loss, linear_loss)
+
+    def _huber_mean_(y_true, y_pred):
+        return tf.keras.backend.mean(_huber_(y_true, y_pred))
+
+    return _huber_

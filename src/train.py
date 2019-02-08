@@ -3,7 +3,7 @@ import os
 import keras
 
 from src.generator import CarsGenerator, CarsDataset
-from src.misc import RedirectModel, smooth_l1, focal
+from src.misc import RedirectModel, smooth_l1, focal, huber_loss
 from src.model import create_retinanet_train, CustomResNetBackBone, AppResNetBackBone, create_retinanet_counting
 from src.utils.transform import random_transform_generator
 
@@ -113,7 +113,7 @@ def train_counting(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e-
     else:
         model = create_retinanet_model(backbone, start_snapshot=retinanet_snapshot)
         model = create_retinanet_counting(model, freeze_base_model=freeze_base_model)
-        model.compile(loss=smooth_l1(), optimizer=keras.optimizers.Adam(lr=lr, clipnorm=0.001))
+        model.compile(loss=huber_loss(clip_delta=3), optimizer=keras.optimizers.Adam(lr=lr, clipnorm=0.001))
 
     initiate_training(augmentation, backbone, batch_size, dataset_path, epochs, model, random_occlusions,
                       snapshot_base_name, snapshot_path, steps_per_epoch, tensorboard_dir, validation_set,
@@ -188,4 +188,4 @@ def initiate_training(augmentation, backbone, batch_size, dataset_path, epochs, 
 
 
 if __name__ == '__main__':
-    train_counting(custom_resnet=True, snapshot_base_name='augmented', validation_set='validation.txt')
+    train_counting(custom_resnet=True, snapshot_base_name='augmented')
