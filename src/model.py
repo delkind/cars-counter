@@ -224,6 +224,12 @@ def create_retinanet_counting(base_model, freeze_base_model=True):
 
 
 def create_pyramid_features(pyramid_outputs, feature_size):
+    """
+    Create feature extraction layers on top of the feature maps pyramid
+    :param pyramid_outputs: feature maps
+    :param feature_size: number of filters
+    :return:
+    """
     c3, c4, c5 = pyramid_outputs
     p5 = keras.layers.Conv2D(feature_size, kernel_size=1, strides=1, padding='same', name='C5_reduced')(c5)
     p5_upsampled = UpsampleLike(name='P5_upsampled')([p5, c4])
