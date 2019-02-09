@@ -3,7 +3,7 @@ import keras.models
 import numpy as np
 from keras.utils import get_file
 
-from src.misc import PriorProbability, UpsampleLike, smooth_l1, focal
+from src.misc import PriorProbability, UpsampleLike, smooth_l1, focal, huber_loss
 
 
 def create_regression_model(
@@ -118,6 +118,7 @@ class AppResNetBackBone:
             # 'ClipBoxes': ClipBoxes,
             '_smooth_l1': smooth_l1(),
             '_focal': focal(),
+            '_huber_': huber_loss(1.0)
 
         }
         return custom_objects
