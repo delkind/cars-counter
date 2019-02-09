@@ -27,7 +27,7 @@ class CarsDataset:
     Tailored specifically for processing the PUCPR+ and CARPK datasets
     """
 
-    def __init__(self, base_dir, annotation='train', validation_split=0, validation_set=None):
+    def __init__(self, base_dir, annotation='train', validation_split=0, validation_set=None, balance_datasets=True):
         """
         Initialize the dataset - process annotation files and build batches
         :param base_dir: directory where both datasets reside. Certain directory structure is assumed
@@ -37,7 +37,7 @@ class CarsDataset:
             if this parameter is specified, validation_split parameter is ignored
         """
         # create dictionary containing both datasets parse results
-        images = self._process_dataset_(base_dir + '/PUCPR+_devkit/data', annotation)
+        images = self._process_dataset_(base_dir + '/PUCPR+_devkit/data', annotation, repeat_times=balance_datasets * 9)
         images += self._process_dataset_(base_dir + '/CARPK_devkit/data', annotation)
 
         # for each image process the annotations and turn them to list of bounding boxes
@@ -64,7 +64,7 @@ class CarsDataset:
             self.validation = None
 
     @staticmethod
-    def _process_dataset_(root, annotation):
+    def _process_dataset_(root, annotation, repeat_times=0):
         """
         Process the directory containing the dataset - create dictionary containing images and annotations.
         Cars datasets directory structure assumed
@@ -77,6 +77,12 @@ class CarsDataset:
             (root + '/Images/' + img,
              open(root + '/Annotations/' + os.path.splitext(img)[0] + '.txt').read().splitlines())
             for img in os.listdir(root + '/Images') if os.path.splitext(img)[0] in train_set]
+        new_images = []
+        for i in range(1, repeat_times + 1):
+            new_images += [(os.path.split(img_path)[0] + '/.' * i + '/' + os.path.split(img_path)[1], ann)
+                           for img_path, ann in images]
+
+        images += new_images
         return images
 
     @staticmethod

@@ -219,7 +219,6 @@ def create_retinanet_counting(base_model, freeze_base_model=True):
     x = keras.layers.Flatten()(x)
     x = keras.layers.Dense(128)(x)
     x = keras.layers.LeakyReLU()(x)
-    x = keras.layers.Dropout(0.8)(x)
     x = keras.layers.Dense(1, activation='linear')(x)
     return keras.models.Model(inputs=[new_input], outputs=[x])
 
