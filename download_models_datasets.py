@@ -58,7 +58,7 @@ if __name__ == '__main__':
     print("Downloading counting (regression) model trained on augmented data  (Experiment IV)...")
     download_file_from_google_drive('1-Bep-jrsZkVIL_Lu3kSc_EguokXPXNv3', '.env/models/counter.h5')
     print("Downloading counting (regression) model trained on augmented balanced datasets  (Experiment V)...")
-    download_file_from_google_drive('1-1O7KJVVhs3h4EBjYEXQCdiRSghHV4qV', '.env/models/counter_balanced.h5')
+    download_file_from_google_drive('1-1GSVl4Yk6acVjZB8s4Jb9Df1vpzlYey', '.env/models/counter_balanced.h5')
 
     print("Downloading datasets...")
     download_file_from_google_drive('0BwSzgS8Mm48Ud2h2dW40Wko3a1E', '.env/dataset.zip')
