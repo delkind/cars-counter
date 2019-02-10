@@ -97,6 +97,7 @@ def fit_confidence_threshold(model, dataset_root, validation_set, preprocess_ima
     errors_by_conf = [(confidence / 100, np.array([abs(len([p for p in pred if p[1] > confidence / 100]) - len(gt))
                                                    for image, (pred, gt) in preds])) for confidence in range(50, 99)]
     metrics = [(confidence, np.sqrt(np.mean(errors ** 2))) for (confidence, errors) in errors_by_conf]
+    print(metrics)
 
     index = np.argmin(list(zip(*metrics))[1])
 
