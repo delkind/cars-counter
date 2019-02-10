@@ -27,7 +27,7 @@ class CarsDataset:
     Tailored specifically for processing the PUCPR+ and CARPK datasets
     """
 
-    def __init__(self, base_dir, annotation='train', validation_split=0, validation_set=None, balance_datasets=True):
+    def __init__(self, base_dir, annotation='train', validation_split=0, validation_set=None, balance_datasets=False):
         """
         Initialize the dataset - process annotation files and build batches
         :param base_dir: directory where both datasets reside. Certain directory structure is assumed
@@ -35,6 +35,8 @@ class CarsDataset:
         :param validation_split: fraction of dataset to use
         :param validation_set: file containing set of images that should constitute validation set
             if this parameter is specified, validation_split parameter is ignored
+        :param balance_datasets: True to repeat the same image 9 times in PUCPR+ dataset to balance its size with CARPK
+            since all the images are randomly warped, the exact same image is not supposed to appear many times
         """
         # create dictionary containing both datasets parse results
         images = self._process_dataset_(base_dir + '/PUCPR+_devkit/data', annotation, repeat_times=balance_datasets * 9)
@@ -70,6 +72,8 @@ class CarsDataset:
         Cars datasets directory structure assumed
         :param root: root directory of the dataset
         :param annotation: which annotation file to use (train/test)
+        :param repeat_times: how many times should the same image be repeated in the dataset. Paths made unique by
+            adding '/./' different number of times before the actual filename
         :return: dictionary containing images and respective bounding boxes (pre-cleaning)
         """
         train_set = set(open(root + '/ImageSets/{}.txt'.format(annotation)).read().splitlines())

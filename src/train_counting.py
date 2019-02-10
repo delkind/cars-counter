@@ -11,5 +11,6 @@ if __name__ == '__main__':
     parser.add_argument('--freeze_base_model', help='for counting model only: freeze base RetinaNet model during '
                                                     'training',
                         action='store_true')
+    print("Starting training with the following parameters:")
     args = parse_and_print_args(parser)
     train_counting(**args)

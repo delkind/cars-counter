@@ -18,6 +18,21 @@ def create_regression_model(
         kernel_initializer=keras.initializers.normal(mean=0.0, stddev=0.01, seed=None),
         bias_initializer='zeros'
 ):
+    """
+    Creates the default regression submodel.
+        :param num_values: Number of values to regress.
+        :param num_anchors: Number of anchors to regress for each feature level.
+        :param pyramid_feature_size: The number of filters to expect from the feature pyramid levels.
+        :param regression_feature_size: The number of filters to use in the layers in the regression submodel.
+        :param name: The name of the submodel.
+        :param kernel_size: size of the kernel in the regression submodel conv layers
+        :param strides: stride in the regression submodel conv layers
+        :param padding: padding in the regression submodel conv layers
+        :param kernel_initializer: initializer for kernel weights
+        :param bias_initializer: intializer for bias weights
+        :return: A keras.models.Model that predicts regression values for each anchor.
+    """
+
     inputs = keras.layers.Input(shape=(None, None, pyramid_feature_size))
     outputs = inputs
     for i in range(4):
@@ -54,6 +69,19 @@ def create_classification_model(
         strides=1,
         padding='same'
 ):
+    """
+    Creates the default classification submodel.
+    :param num_classes: number of classes in the data
+    :param num_anchors: Number of anchors to regress for each feature level.
+    :param pyramid_feature_size: The number of filters to expect from the feature pyramid levels.
+    :param prior_probability: Prior probability for the classification submodel weights initialization
+    :param classification_feature_size: number of filters in the classification submodel conv layers
+    :param name: The name of the submodel.
+    :param kernel_size: size of the kernel in the classification submodel conv layers
+    :param strides: stride in the  classification submodel conv layers
+    :param padding: padding in the  classification submodel conv layers
+    :return: A keras.models.Model that predicts classification values for each anchor.
+    """
     inputs = keras.layers.Input(shape=(None, None, pyramid_feature_size))
 
     outputs = inputs
@@ -86,6 +114,9 @@ def create_classification_model(
 
 
 class AppResNetBackBone:
+    """
+    Resnet50 backbone from keras.applications
+    """
     def __init__(self):
         from keras.applications.resnet50 import ResNet50
         resnet = ResNet50(include_top=False, weights='imagenet')
@@ -94,21 +125,36 @@ class AppResNetBackBone:
         self.model = keras.models.Model(inputs=[resnet.input], outputs=outputs)
 
     def get_input(self):
+        """
+        :return: model input tensor
+        """
         return self.model.input
 
     def get_outputs(self):
+        """
+        :return: list of model output tensors
+        """
         return self.model.outputs
 
     def get_pyramid_outputs(self):
+        """
+        :return: list of output tensors representing feature maps pyramid
+        """
         return self.get_outputs()[1:]
 
     @staticmethod
     def get_preprocess_image():
+        """
+        :return: function for image preprocessing for the model
+        """
         from keras.applications.resnet50 import preprocess_input
         return preprocess_input
 
     @staticmethod
     def get_custom_objects():
+        """
+        :return: custom objects for model loading
+        """
         custom_objects = {
             'UpsampleLike': UpsampleLike,
             'PriorProbability': PriorProbability,
@@ -153,16 +199,28 @@ class CustomResNetBackBone:
         )
 
     def get_input(self):
+        """
+        :return: model input tensor
+        """
         return self.model.input
 
     def get_outputs(self):
+        """
+        :return: list of model output tensors
+        """
         return self.model.outputs
 
     def get_pyramid_outputs(self):
+        """
+        :return: list of output tensors representing feature maps pyramid
+        """
         return self.get_outputs()[1:]
 
     @staticmethod
     def get_preprocess_image():
+        """
+        :return: function for image preprocessing for the model
+        """
         def do_preprocess(x, mode='caffe'):
             x = x.astype(np.float32)
 
@@ -180,6 +238,9 @@ class CustomResNetBackBone:
 
     @staticmethod
     def get_custom_objects():
+        """
+        :return: custom objects for model loading
+        """
         custom_objects = dict(AppResNetBackBone.get_custom_objects())
         import keras_resnet
         custom_objects.update(keras_resnet.custom_objects)
@@ -187,6 +248,15 @@ class CustomResNetBackBone:
 
 
 def create_retinanet_train(backbone, num_classes=1, num_anchors=9, feature_size=256, name='retinanet'):
+    """
+    Create RetinaNet model for training (inference layers not attached)
+    :param backbone: ResNet backbone
+    :param num_classes: number of classes in the dataset
+    :param num_anchors: number of different anchors for each pyramid level
+    :param feature_size: number of filters in the regression and classification submodels conv layers
+    :param name: name of the model
+    :return: A keras.models.Model for RetinaNet.
+    """
     pyramid_features = create_pyramid_features(backbone.get_pyramid_outputs(), feature_size)
     regression_model = create_regression_model(num_anchors=num_anchors, num_values=4)  # 4 values for bounding box
     classification_model = create_classification_model(num_classes=num_classes, num_anchors=num_anchors)
@@ -209,6 +279,7 @@ def create_retinanet_counting(base_model, freeze_base_model=True):
     :param base_model: base RetinaNet model
     :param freeze_base_model: True if base model should be frozen during training
     :return: counting model
+    NOTE. Unlike the pure RetinaNet, the counting model assumes images dimensions of 1280x720
     """
 
     new_input = keras.layers.Input(shape=(720, 1280, 3))

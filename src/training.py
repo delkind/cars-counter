@@ -97,7 +97,7 @@ def train_detection(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e
                     validation_split=0.1,
                     tensorboard_dir='logs/', custom_resnet=True, augmentation=True, snapshot_path='model_snapshots',
                     snapshot_base_name="resnet", validation_set=None, random_occlusions=False,
-                    steps_per_epoch=None):
+                    steps_per_epoch=None, balance_datasets=False):
     """
     Create and train detection model
     :param dataset_path: path to the cars datasets
@@ -115,6 +115,7 @@ def train_detection(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e
         validation_split is ignored
     :param random_occlusions: True to augment training set with randomly occluded images
     :param steps_per_epoch: Number of steps per training epoch
+    :param balance_datasets: Balance number of images in both datasets
     """
     backbone = CustomResNetBackBone if custom_resnet else AppResNetBackBone
     model = create_retinanet_model(backbone, start_snapshot)
@@ -124,14 +125,14 @@ def train_detection(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e
 
     initiate_training(augmentation, backbone, batch_size, dataset_path, epochs, model, random_occlusions,
                       snapshot_base_name, snapshot_path, steps_per_epoch, tensorboard_dir, validation_set,
-                      validation_split, counting_model=False)
+                      validation_split, counting_model=False, balance_datasets=balance_datasets)
 
 
 def train_counting(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e-5, start_snapshot=None,
                    validation_split=0.1, retinanet_snapshot=None,
                    tensorboard_dir='logs/', custom_resnet=True, augmentation=True, snapshot_path='model_snapshots',
                    snapshot_base_name="resnet", validation_set=None, random_occlusions=False,
-                   freeze_base_model=True, steps_per_epoch=None):
+                   freeze_base_model=True, steps_per_epoch=None, balance_datasets=False):
     """
     Train the counting model based on ResNet
     :param dataset_path: path to the cars datasets
@@ -151,6 +152,7 @@ def train_counting(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e-
     :param random_occlusions: True to add randomly occluded images to the training
     :param freeze_base_model: True to freeze base RetinaNet model during training
     :param steps_per_epoch: Number of steps per training epoch
+    :param balance_datasets: Balance number of images in both datasets
     """
     backbone = CustomResNetBackBone if custom_resnet else AppResNetBackBone
     if start_snapshot:
@@ -162,12 +164,12 @@ def train_counting(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e-
 
     initiate_training(augmentation, backbone, batch_size, dataset_path, epochs, model, random_occlusions,
                       snapshot_base_name, snapshot_path, steps_per_epoch, tensorboard_dir, validation_set,
-                      validation_split, counting_model=True)
+                      validation_split, counting_model=True, balance_datasets=balance_datasets)
 
 
 def initiate_training(augmentation, backbone, batch_size, dataset_path, epochs, model, random_occlusions,
                       snapshot_base_name, snapshot_path, steps_per_epoch, tensorboard_dir, validation_set,
-                      validation_split, counting_model):
+                      validation_split, counting_model, balance_datasets=False):
     """
     Initiate training for the specified model
     :param augmentation: True to perform data augmentations
@@ -185,6 +187,7 @@ def initiate_training(augmentation, backbone, batch_size, dataset_path, epochs, 
         validation_split is ignored
     :param validation_split: fraction of the training set to put aside as validation set, 0 for no validation
     :param counting_model: True if training the counting model
+    :param balance_datasets: Balance number of images in both datasets
     """
     if augmentation:
         transform_generator = random_transform_generator(
@@ -201,7 +204,8 @@ def initiate_training(augmentation, backbone, batch_size, dataset_path, epochs, 
     else:
         transform_generator = random_transform_generator(flip_x_chance=0.5)
 
-    dataset = CarsDataset(dataset_path, validation_split=validation_split, validation_set=validation_set)
+    dataset = CarsDataset(dataset_path, validation_split=validation_split, validation_set=validation_set,
+                          balance_datasets=balance_datasets)
 
     val_generator = None
     validation_steps = None
@@ -252,7 +256,6 @@ def initiate_training(augmentation, backbone, batch_size, dataset_path, epochs, 
 
 def parse_and_print_args(parser):
     args = vars(parser.parse_args())
-    print("Starting training with the following parameters:")
     for name, val in args.items():
         print('{}: {}'.format(name, val))
     return args
@@ -286,3 +289,4 @@ def add_common_arguments(parser):
     parser.add_argument('--steps_per_epoch', help='steps per epoch (if not specified, all the '
                                                   'training set will be iterated once per epoch)',
                         type=int, action='store', default=None)
+    parser.add_argument('--balance_datasets', help='Balance number of images in both datasets', action='store_true')
