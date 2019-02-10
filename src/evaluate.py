@@ -208,6 +208,8 @@ def evaluate(model_path,
         with open(results_path, 'wb') as f:
             pickle.dump(f, (preds, confidence_threshold))
 
+    print("Confidence threshold: {}".format(confidence_threshold))
+
     evaluate_results(confidence_threshold, preds, top_misses_to_visualize)
 
 
