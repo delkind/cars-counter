@@ -56,7 +56,7 @@ if __name__ == '__main__':
     replace_in_file('.env/models/retinanet_validation.txt', '../datasets/', '.env/datasets')
 
     print("Downloading counting (regression) model trained on augmented data  (Experiment IV)...")
-    download_file_from_google_drive('1-HY9YeCsZo6dZYRLeFHcF0GHZCtWga4r', '.env/models/counter.h5')
+    download_file_from_google_drive('1-Bep-jrsZkVIL_Lu3kSc_EguokXPXNv3', '.env/models/counter.h5')
     print("Downloading counting (regression) model trained on augmented balanced datasets  (Experiment V)...")
     download_file_from_google_drive('1-1GSVl4Yk6acVjZB8s4Jb9Df1vpzlYey', '.env/models/counter_balanced.h5')
 
