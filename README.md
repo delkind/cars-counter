@@ -8,7 +8,7 @@ on test sets and compute the accuracy metrics (MAE and RMSE)
 1. Clone the repository: <br>
 `git clone https://github.com/delkind/cars-counter.git`<br>
 `cd cars-counter`
-1. Create and activate Python 3 virtual environment (note that TensorFlow does not yet support Python 3.7, si it is advisable to use Python 3.6 or lower)
+1. Create and activate Python 3 virtual environment (note that TensorFlow does not yet support Python 3.7, so it is advisable to use Python 3.6 or lower). This step is optional but highly recommended.
 `virtualenv --python=python3 .env`
 `source .env/bin/activate`
 1. Perform the setup<br> 
