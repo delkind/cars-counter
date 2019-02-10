@@ -52,7 +52,10 @@ if __name__ == '__main__':
     print("Downloading ResNet model trained on augmented data  (Experiment II)...")
     download_file_from_google_drive('191JRKHiuyhMRm6WyoYN8RfN9ROYLgEKk', '.env/models/retinanet_augmented_data.h5')
     # download_file_from_google_drive('1tEZRWBcCWWqnvNmfAhvhH7XDp2l1v77b', '.env/models/retinanet_augmented_data.h5')
-    download_file_from_google_drive('1--P701E6_ULoNvYzWrenOE5evSNMJaub', '.env/models/retinanet_validation.txt')
+
+    # https://drive.google.com/open?id=1pAqLYcVNM9gW473b21aL9zPzh1iv7AiW
+    download_file_from_google_drive('1pAqLYcVNM9gW473b21aL9zPzh1iv7AiW', '.env/models/retinanet_validation.txt')
+    # download_file_from_google_drive('1--P701E6_ULoNvYzWrenOE5evSNMJaub', '.env/models/retinanet_validation.txt')
 
     replace_in_file('.env/models/retinanet_validation.txt', '../datasets/', '.env/datasets')
 
