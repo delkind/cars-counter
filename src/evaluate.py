@@ -210,7 +210,7 @@ def evaluate(model_path,
                                                   confidence_threshold=confidence_threshold)
     if results_path:
         with open(results_path, 'wb') as f:
-            pickle.dump(f, (preds, confidence_threshold))
+            pickle.dump((preds, confidence_threshold), file=f)
 
     print("Confidence threshold: {}".format(confidence_threshold))
 
