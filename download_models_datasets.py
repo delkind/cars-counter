@@ -1,6 +1,5 @@
 import os
 import subprocess
-from zipfile import ZipFile
 
 import requests
 
@@ -48,7 +47,7 @@ def replace_in_file(filename, text_to_search, replacement_text):
 if __name__ == '__main__':
     os.makedirs('.env/models', exist_ok=True)
     print("Downloading ResNet model trained on raw data (Experiment I)...")
-    download_file_from_google_drive('10KhNPIH80cSkfUMghcqLtw1NZoc9cAIS', '.env/models/retinanet_raw_data.h5')
+    download_file_from_google_drive('1-qILYi4tw8PxgKIvks0oKT_a8SZQ3WKY', '.env/models/retinanet_raw_data.h5')
     print("Downloading ResNet model trained on augmented data  (Experiment II)...")
     download_file_from_google_drive('10KhNPIH80cSkfUMghcqLtw1NZoc9cAIS', '.env/models/retinanet_augmented_data.h5')
     download_file_from_google_drive('1--P701E6_ULoNvYzWrenOE5evSNMJaub', '.env/models/retinanet_validation.txt')

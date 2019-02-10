@@ -50,8 +50,11 @@ class CarsDataset:
 
         if validation_set:
             validation_set = set(open(validation_set, "rt").read().splitlines())
-            self.validation = dict([(image, ann) for (image, ann) in images if image in validation_set])
-            self.train = dict([(image, ann) for (image, ann) in images if image not in validation_set])
+            pure_validation_set = set(os.path.split(img)[1] for img in validation_set)
+            pure_images = {os.path.split(img_path)[1]: ann for img_path, ann in images}
+            self.validation = dict((img, pure_images[os.path.split(img)[1]]) for img in validation_set)
+            self.train = dict([(image, ann) for (image, ann) in images if os.path.split(image)[1] not in
+                               pure_validation_set])
         elif validation_split > 0:
             # shuffle to create truly random split
             random.shuffle(images)
