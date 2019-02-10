@@ -67,7 +67,7 @@ def create_callbacks(model,
     callbacks.append(keras.callbacks.ReduceLROnPlateau(
         monitor='loss',
         factor=0.1,
-        patience=1,
+        patience=2,
         verbose=1,
         mode='auto',
         min_delta=0.0001,
@@ -161,7 +161,7 @@ def train_counting(dataset_path='../datasets/', batch_size=1, epochs=150, lr=1e-
         model = create_retinanet_model(backbone, start_snapshot=retinanet_snapshot)
         model = create_retinanet_counting(model, freeze_base_model=freeze_base_model)
 
-    model.compile(loss=keras.losses.mean_squared_error, optimizer=keras.optimizers.Adam(lr=lr, clipnorm=0.001))
+    model.compile(loss=huber_loss(3), optimizer=keras.optimizers.Adam(lr=lr, clipnorm=0.001))
 
     initiate_training(augmentation, backbone, batch_size, dataset_path, epochs, model, random_occlusions,
                       snapshot_base_name, snapshot_path, steps_per_epoch, tensorboard_dir, validation_set,
