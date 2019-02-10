@@ -16,13 +16,15 @@ on test sets and compute the accuracy metrics (MAE and RMSE)
 `python setup.py build_ext --inplace`
 
 ## Reproducing training
-###RetinaNet model (detection)
+###RetinaNet model (detection) - raw data
 Run the following command:<br>
-`src/train_detection.py --dataset_path .env/datasets/ --custom_resnet --augmentation --tensorboard_dir /content/logs/
---snapshot_path './model_snapshots/' --snapshot_base_name counter`
+`python src/train_detection.py --dataset_path .env/datasets/ --custom_resnet --tensorboard_dir /./logs/ --snapshot_path './model_snapshots/' --snapshot_base_name resnet_raw_data`
+
+###RetinaNet model (detection) - augmented data
+Run the following command:<br>
+`python src/train_detection.py --dataset_path .env/datasets/ --custom_resnet --augmentation --tensorboard_dir /./logs/ --snapshot_path './model_snapshots/' --snapshot_base_name resnet_augmented_data`
 
 ###Counter model (regression)
 Run the following command:<br>
-`src/train_counting.py --dataset_path .env/datasets/ --custom_resnet --augmentation ----retinanet_snapshot .env/models/retinanet_augmented_data.h5 --tensorboard_dir /content/logs/
---snapshot_path './model_snapshots/' --snapshot_base_name counter`
+`python src/train_counting.py --dataset_path .env/datasets/ --custom_resnet --augmentation ----retinanet_snapshot .env/models/retinanet_augmented_data.h5 --tensorboard_dir /./logs/ --snapshot_path './model_snapshots/' --snapshot_base_name counter`
 
