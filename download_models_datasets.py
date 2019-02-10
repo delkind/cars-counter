@@ -47,9 +47,11 @@ if __name__ == '__main__':
     print("Downloading counting (regression) model trained on balanced datasets  (Experiment V)...")
     download_file_from_google_drive('10KhNPIH80cSkfUMghcqLtw1NZoc9cAIS', '.env/models/counter_balanced.h5')
 
-    download_file_from_google_drive('0BwSzgS8Mm48Ud2h2dW40Wko3a1E', '../dataset.zip')
-    with ZipFile('../dataset.zip') as zf:
-        zf.extractall(path='../', pwd='hsieh_iccv17')
+    print("Downloading datasets...")
+    download_file_from_google_drive('0BwSzgS8Mm48Ud2h2dW40Wko3a1E', '.env/dataset.zip')
+    print("Extracting datasets...")
+    with ZipFile('.env/dataset.zip') as zf:
+        zf.extractall(path='.env/', pwd=b'hsieh_iccv17')
 
 
 
