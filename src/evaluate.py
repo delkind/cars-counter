@@ -97,7 +97,6 @@ def fit_confidence_threshold(model, dataset_root, validation_set, preprocess_ima
     errors_by_conf = [(confidence / 100, np.array([abs(len([p for p in pred if p[1] > confidence / 100]) - len(gt))
                                                    for image, (pred, gt) in preds])) for confidence in range(50, 99)]
     metrics = [(confidence, np.sqrt(np.mean(errors ** 2))) for (confidence, errors) in errors_by_conf]
-    print(metrics)
 
     index = np.argmin(list(zip(*metrics))[1])
 
@@ -231,7 +230,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Training script for training a RetinaNet-based car counting model.')
     parser.add_argument('--top_misses_to_visualize',
                         help='number of top misses to visualize (0 to omit visualization)',
-                        action='store', type=int, default=10)
+                        action='store', type=int, default=0)
 
     evaluation_type = parser.add_mutually_exclusive_group()
     evaluation_type.add_argument('--model_path', help='path to the trained model', action='store')
