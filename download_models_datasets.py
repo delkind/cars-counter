@@ -1,4 +1,5 @@
 import os
+import subprocess
 from zipfile import ZipFile
 
 import requests
@@ -49,10 +50,4 @@ if __name__ == '__main__':
 
     print("Downloading datasets...")
     download_file_from_google_drive('0BwSzgS8Mm48Ud2h2dW40Wko3a1E', '.env/dataset.zip')
-    print("Extracting datasets...")
-    with ZipFile('.env/dataset.zip') as zf:
-        zf.extractall(path='.env/', pwd=b'hsieh_iccv17')
-
-
-
-
+    subprocess.run(["unzip", "-P", "hsieh_iccv17", ".env/dataset.zip", "-d", ".env/"])

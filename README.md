@@ -17,6 +17,12 @@ on test sets and compute the accuracy metrics (MAE and RMSE)
 
 ## Reproducing training
 ###RetinaNet model (detection)
-Run the following command:
+Run the following command:<br>
+`src/train_detection.py --dataset_path .env/datasets/ --custom_resnet --augmentation --tensorboard_dir /content/logs/
+--snapshot_path './model_snapshots/' --snapshot_base_name counter`
 
- 
+###Counter model (regression)
+Run the following command:<br>
+`src/train_counting.py --dataset_path .env/datasets/ --custom_resnet --augmentation ----retinanet_snapshot .env/models/retinanet_augmented_data.h5 --tensorboard_dir /content/logs/
+--snapshot_path './model_snapshots/' --snapshot_base_name counter`
+
