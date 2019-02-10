@@ -90,6 +90,7 @@ def fit_confidence_threshold(model, dataset_root, validation_set, preprocess_ima
     if validation_set is None:
         raise Exception("Error: validation set is required to fit the confidence threshold")
 
+    print("Fitting confidence threshold...", end='')
     eval_set = CarsDataset(dataset_root, validation_set=validation_set)
     preds = list(map(lambda tup: predict_image(model, tup[0], tup[1], preprocess_image=preprocess_image),
                      eval_set.validation.items()))
@@ -98,6 +99,8 @@ def fit_confidence_threshold(model, dataset_root, validation_set, preprocess_ima
     metrics = [(confidence, np.sqrt(np.mean(errors ** 2))) for (confidence, errors) in errors_by_conf]
 
     index = np.argmin(list(zip(*metrics))[1])
+
+    print(" fitted {}".format(metrics[index][0]))
 
     return metrics[index][0]
 

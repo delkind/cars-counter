@@ -37,6 +37,14 @@ def save_response_content(response, destination):
                 f.write(chunk)
 
 
+def replace_in_file(filename, text_to_search, replacement_text):
+    import fileinput
+
+    with fileinput.FileInput(filename, inplace=True, backup='.bak') as file:
+        for line in file:
+            print(line.replace(text_to_search, replacement_text))
+
+
 if __name__ == '__main__':
     os.makedirs('.env/models', exist_ok=True)
     print("Downloading ResNet model trained on raw data (Experiment I)...")
@@ -45,12 +53,12 @@ if __name__ == '__main__':
     download_file_from_google_drive('10KhNPIH80cSkfUMghcqLtw1NZoc9cAIS', '.env/models/retinanet_augmented_data.h5')
     download_file_from_google_drive('1ahn83KYDDr-tFRykitz1V779gNZuJvYM', '.env/models/retinanet_validation.txt')
 
+    replace_in_file('.env/models/retinanet_validation.txt', '../datasets/', '.env/datasets')
+
     print("Downloading counting (regression) model trained on augmented data  (Experiment IV)...")
     download_file_from_google_drive('10KhNPIH80cSkfUMghcqLtw1NZoc9cAIS', '.env/models/counter.h5')
-    download_file_from_google_drive('1ZRwuDFwh48yyZyCimsOoiPx8sqbmRdws', '.env/models/counter-validation.txt')
     print("Downloading counting (regression) model trained on balanced datasets  (Experiment V)...")
     download_file_from_google_drive('10KhNPIH80cSkfUMghcqLtw1NZoc9cAIS', '.env/models/counter_balanced.h5')
-    download_file_from_google_drive('1--P701E6_ULoNvYzWrenOE5evSNMJaub', '.env/models/counter_balanced-validation.txt')
 
     print("Downloading datasets...")
     download_file_from_google_drive('0BwSzgS8Mm48Ud2h2dW40Wko3a1E', '.env/dataset.zip')
