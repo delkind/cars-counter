@@ -42,7 +42,7 @@ def replace_in_file(filename, text_to_search, replacement_text):
 
     with fileinput.FileInput(filename, inplace=True, backup='.bak') as file:
         for line in file:
-            print(line.replace(text_to_search, replacement_text))
+            print(line.replace(text_to_search, replacement_text), end='')
 
 
 if __name__ == '__main__':
