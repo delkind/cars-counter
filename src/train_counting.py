@@ -1,4 +1,7 @@
 import argparse
+import sys
+
+sys.path.insert(0, '.')
 
 from src.training import train_counting, add_common_arguments, parse_and_print_args
 

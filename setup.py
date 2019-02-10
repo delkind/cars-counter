@@ -52,7 +52,8 @@ setuptools.setup(
     maintainer_email='david.elkind@gmail.com',
     cmdclass={'build_ext': BuildExtension},
     packages=setuptools.find_packages(),
-    install_requires=['keras', 'keras-resnet', 'six', 'scipy', 'cython', 'Pillow', 'opencv-python', 'progressbar2'],
+    install_requires=['keras', 'keras-resnet', 'six', 'scipy', 'cython', 'Pillow', 'opencv-python', 'progressbar2',
+                      'requests'],
     ext_modules=extensions,
     setup_requires=["cython>=0.28", "numpy>=1.14.0"]
 )

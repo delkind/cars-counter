@@ -5,6 +5,10 @@ import cv2
 import keras
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
+
+sys.path.insert(0, '.')
+
 
 from src.generator import CarsDataset, read_image_bgr
 from src.inference import add_inference
