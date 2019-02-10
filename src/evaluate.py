@@ -169,6 +169,8 @@ def evaluate_results(confidence_threshold, preds, top_misses_to_visualize):
     errs = np.array(errors)
     errs_carpk = np.array(errors_carpk)
     errs_pucpr = np.array(errors_pucpr)
+    print("Test set consists of {} samples from CARPK dataset and {} samples from PUCPR+ dataset".format(
+        len(errs_carpk), len(errs_pucpr)))
     print("Combined: MAE: {}, RMSE: {}, CARPK: MAE: {}, RMSE: {}, PUCPR+: MAE: {}, RMSE: {}".format(
         np.mean(errs),
         np.sqrt(np.mean(errs ** 2)),
