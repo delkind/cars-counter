@@ -67,7 +67,7 @@ def create_callbacks(model,
     callbacks.append(keras.callbacks.ReduceLROnPlateau(
         monitor='loss',
         factor=0.1,
-        patience=2,
+        patience=1,
         verbose=1,
         mode='auto',
         min_delta=0.0001,
