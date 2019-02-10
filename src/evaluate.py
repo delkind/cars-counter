@@ -9,7 +9,6 @@ import sys
 
 sys.path.insert(0, '.')
 
-
 from src.generator import CarsDataset, read_image_bgr
 from src.inference import add_inference
 from src.model import CustomResNetBackBone, AppResNetBackBone
@@ -49,6 +48,7 @@ def visualize_predictions(img_path, annotations):
     :param annotations: (prediction, ground_truth) tuple
     :return:
     """
+
     def draw_box(image, box, color, thickness=2):
         b = np.array(box).astype(int)
         cv2.rectangle(image, (b[0], b[1]), (b[2], b[3]), color, thickness, cv2.LINE_AA)
@@ -66,16 +66,16 @@ def visualize_predictions(img_path, annotations):
     draw = cv2.cvtColor(draw, cv2.COLOR_BGR2RGB)
     for box in gt:
         draw_box(draw, box, color=green, thickness=4)
-    for box, score in preds:
-        b = box.astype(int)
-        draw_box(draw, b, color=red)
-        caption = "{:.3f}".format(score)
-        draw_caption(draw, b, caption)
+    if len(preds[0]) > 1:
+        for box, score, _ in preds:
+            b = box.astype(int)
+            draw_box(draw, b, color=red)
+            caption = "{:.3f}".format(score)
+            draw_caption(draw, b, caption)
     plt.figure(figsize=(20, 20))
     plt.axis('off')
     plt.imshow(draw)
     plt.show()
-    return len(preds) - len(gt)
 
 
 def fit_confidence_threshold(model, dataset_root, validation_set, preprocess_image):
@@ -123,8 +123,9 @@ def predict_dataset(model_path, custom_resnet, dataset_root, validation_set=None
                                                         backbone.get_preprocess_image())
 
     eval_set = CarsDataset(dataset_root, 'test')
-    return list(map(lambda tup: predict_image(model, tup[0], tup[1], preprocess_image=backbone.get_preprocess_image()),
-                    eval_set.train.items())), confidence_threshold
+    return list(
+        (map(lambda tup: predict_image(model, tup[0], tup[1], preprocess_image=backbone.get_preprocess_image()),
+             eval_set.train.items()))), confidence_threshold
 
 
 def translate_to_count(predictions, confidence_threshold):
@@ -162,10 +163,10 @@ def evaluate_results(confidence_threshold, preds, top_misses_to_visualize):
     """
     counts = translate_to_count(preds, confidence_threshold)
     errors, errors_carpk, errors_pucpr = calculate_errors(counts)
-    errs = np.array(list(zip(*errors))[1])
-    errs_carpk = np.array(list(zip(*errors_carpk))[1])
-    errs_pucpr = np.array(list(zip(*errors_pucpr))[1])
-    print("Combined: MAE: {}, RMSE{}, CARPK: MAE: {}, RMSE{}, PUCPR+: MAE: {}, RMSE{}".format(
+    errs = np.array(errors)
+    errs_carpk = np.array(errors_carpk)
+    errs_pucpr = np.array(errors_pucpr)
+    print("Combined: MAE: {}, RMSE: {}, CARPK: MAE: {}, RMSE: {}, PUCPR+: MAE: {}, RMSE: {}".format(
         np.mean(errs),
         np.sqrt(np.mean(errs ** 2)),
         np.mean(errs_carpk),
@@ -174,9 +175,11 @@ def evaluate_results(confidence_threshold, preds, top_misses_to_visualize):
         np.sqrt(np.mean(errs_pucpr ** 2))
     ))
     # visualize top misses
-    top_misses = list(sorted(counts, key=lambda tup: abs(tup[1][0] - tup[1][1]),
-                             reverse=True))[:top_misses_to_visualize]
-    print(list(map(lambda tup: visualize_predictions(tup[0], tup[1]), top_misses)))
+    preds_dict = dict(preds)
+    top_misses = [(image, preds_dict[image]) for image, _ in
+                  list(sorted(counts, key=lambda tup: abs(tup[1][0] - len(tup[1][1])),
+                              reverse=True))[: top_misses_to_visualize]]
+    list(map(lambda tup: visualize_predictions(tup[0], tup[1]), top_misses))
 
 
 def evaluate(model_path,
