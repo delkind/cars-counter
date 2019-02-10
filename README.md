@@ -52,3 +52,6 @@ Run the following command:<br>
 ### Counter model (regression) - imbalanced data
 Run the following command:<br>
 `python src/evaluate.py --dataset_root .env/datasets/ --model_path .env/models/counter_balanced.h5 --custom_resnet`
+
+## Colab notebook
+For convenience, I have created the Colab notebook that executes all the scripts above at https://colab.research.google.com/drive/1augPRCpt37hNNGUVYtI2G88ix2YFp34z
