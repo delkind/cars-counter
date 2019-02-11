@@ -14,6 +14,8 @@ on test sets and compute the accuracy metrics (MAE and RMSE)
 1. Perform the setup<br> 
 `pip install .`<br>
 `python setup.py build_ext --inplace`
+1. Download the models and the datasets <br> 
+`python download_models_datasets.py`<br>
 
 ## Reproducing training
 ### RetinaNet model (detection) - raw data
